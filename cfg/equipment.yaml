@@ -1,0 +1,69 @@
+version: 1
+category: "equipment"
+fields:
+  - key: "id"
+    label: "ID"
+    type: "uint32"
+    required: true
+  - key: "name"
+    label: "名称"
+    type: "string"
+    required: true
+  - key: "icon"
+    label: "图标"
+    type: "png"
+    required: false
+  - key: "atk"
+    label: "攻击"
+    type: "uint32"
+    required: true
+  - key: "def"
+    label: "防御"
+    type: "uint32"
+    required: true
+  - key: "slot"
+    label: "部位"
+    type: "enum"
+    enum: "equipment_slot"
+    required: true
+  - key: "crit_rate"
+    label: "暴击率(万分率)"
+    type: "uint32"
+    required: true
+  - key: "crit_dmg"
+    label: "暴击伤害(万分率)"
+    type: "uint32"
+    required: true
+rows:
+  - id: 1000000
+    name: "草帽"
+    icon: null
+    atk: 0
+    def: 1
+    slot: 1
+    crit_rate: 0
+    crit_dmg: 0
+  - id: 1000001
+    name: "布衣"
+    icon: null
+    atk: 0
+    def: 2
+    slot: 2
+    crit_rate: 0
+    crit_dmg: 0
+  - id: 1000002
+    name: "短裤"
+    icon: null
+    atk: 0
+    def: 3
+    slot: 3
+    crit_rate: 0
+    crit_dmg: 0
+  - id: 1000003
+    name: "草鞋"
+    icon: null
+    atk: 0
+    def: 4
+    slot: 4
+    crit_rate: 0
+    crit_dmg: 0

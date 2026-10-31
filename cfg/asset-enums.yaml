@@ -1,0 +1,20 @@
+version: 1
+enums:
+  - key: "equipment_slot"
+    label: "装备部位"
+    items:
+      - key: "undefined"
+        label: "未定义"
+        value: 0
+      - key: "head"
+        label: "头部"
+        value: 1
+      - key: "body"
+        label: "身体"
+        value: 2
+      - key: "legs"
+        label: "腿部"
+        value: 3
+      - key: "feet"
+        label: "脚部"
+        value: 4

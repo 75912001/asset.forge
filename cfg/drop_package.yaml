@@ -1,0 +1,22 @@
+version: 1
+category: "drop_package"
+fields:
+  - key: "id"
+    label: "ID"
+    type: "uint32"
+    required: true
+  - key: "name"
+    label: "包名称"
+    type: "string"
+    required: true
+  - key: "selection_mode"
+    label: "组合抽取模式"
+    type: "string"
+    required: true
+rows:
+  - id: 2000000
+    name: "新手包"
+    selection_mode: "weight"
+  - id: 2000001
+    name: "新手包2"
+    selection_mode: "weight"

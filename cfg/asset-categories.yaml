@@ -1,0 +1,22 @@
+version: 1
+categories:
+  - key: "base"
+    name: "基础数值"
+    id_start: 1
+    id_end: 999999
+    description: "角色基础数值"
+  - key: "equipment"
+    name: "装备"
+    id_start: 1000000
+    id_end: 1999999
+    description: "装备"
+  - key: "drop_package"
+    name: "掉落包"
+    id_start: 2000000
+    id_end: 2999999
+    description: "掉落包"
+  - key: "drop_entry"
+    name: "掉落条目"
+    id_start: 3000000
+    id_end: 3999999
+    description: "按权重选择一个条目, 发放该条目的全部奖励."

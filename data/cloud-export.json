@@ -1,0 +1,155 @@
+{
+  "format": "asset-forge-cloud-export",
+  "exportedAt": "2026-10-29T11:15:54.042Z",
+  "metadata": [
+    {
+      "owner_id": "BYjB5rKFyTRBGZZlfBzSItKD1Iy7sSjEEo07qD1vjcgyitdIU4Ca9U",
+      "revision": 13,
+      "updated_at": "2026-10-29T10:29:11.186Z",
+      "migration_id": "6a33f41a-ff0f-4aae-9a5e-3a1f014145cd",
+      "migration_hash": "4668c6ab7e3eec294b14adf1268ff2e50fab2039187301e78c6a41050ddc43ab"
+    }
+  ],
+  "records": [
+    {
+      "owner_id": "BYjB5rKFyTRBGZZlfBzSItKD1Iy7sSjEEo07qD1vjcgyitdIU4Ca9U",
+      "kind": "category",
+      "entry_key": "base",
+      "position": 0,
+      "payload": "{\"name\":\"基础数值\",\"key\":\"base\",\"start\":1,\"end\":999999,\"description\":\"角色基础数值\"}"
+    },
+    {
+      "owner_id": "BYjB5rKFyTRBGZZlfBzSItKD1Iy7sSjEEo07qD1vjcgyitdIU4Ca9U",
+      "kind": "category",
+      "entry_key": "drop_entry",
+      "position": 3,
+      "payload": "{\"key\":\"drop_entry\",\"system\":\"drop_entry\",\"name\":\"掉落条目\",\"start\":3000000,\"end\":3999999,\"description\":\"按权重选择一个条目, 发放该条目的全部奖励.\"}"
+    },
+    {
+      "owner_id": "BYjB5rKFyTRBGZZlfBzSItKD1Iy7sSjEEo07qD1vjcgyitdIU4Ca9U",
+      "kind": "category",
+      "entry_key": "drop_package",
+      "position": 2,
+      "payload": "{\"name\":\"掉落包\",\"key\":\"drop_package\",\"start\":2000000,\"end\":2999999,\"description\":\"掉落包\",\"system\":\"drop_package\"}"
+    },
+    {
+      "owner_id": "BYjB5rKFyTRBGZZlfBzSItKD1Iy7sSjEEo07qD1vjcgyitdIU4Ca9U",
+      "kind": "category",
+      "entry_key": "equipment",
+      "position": 1,
+      "payload": "{\"name\":\"装备\",\"key\":\"equipment\",\"start\":1000000,\"end\":1999999,\"description\":\"装备\"}"
+    },
+    {
+      "owner_id": "BYjB5rKFyTRBGZZlfBzSItKD1Iy7sSjEEo07qD1vjcgyitdIU4Ca9U",
+      "kind": "enum",
+      "entry_key": "equipment_slot",
+      "position": 0,
+      "payload": "{\"key\":\"equipment_slot\",\"label\":\"装备部位\",\"items\":[{\"key\":\"undefined\",\"label\":\"未定义\",\"value\":0},{\"key\":\"head\",\"label\":\"头部\",\"value\":1},{\"key\":\"body\",\"label\":\"身体\",\"value\":2},{\"key\":\"legs\",\"label\":\"腿部\",\"value\":3},{\"key\":\"feet\",\"label\":\"脚部\",\"value\":4}]}"
+    },
+    {
+      "owner_id": "BYjB5rKFyTRBGZZlfBzSItKD1Iy7sSjEEo07qD1vjcgyitdIU4Ca9U",
+      "kind": "row",
+      "entry_key": "base:1",
+      "position": 0,
+      "payload": "{\"id\":1,\"name\":\"金币\",\"icon\":null}"
+    },
+    {
+      "owner_id": "BYjB5rKFyTRBGZZlfBzSItKD1Iy7sSjEEo07qD1vjcgyitdIU4Ca9U",
+      "kind": "row",
+      "entry_key": "base:2",
+      "position": 1,
+      "payload": "{\"id\":2,\"name\":\"银币\",\"icon\":null}"
+    },
+    {
+      "owner_id": "BYjB5rKFyTRBGZZlfBzSItKD1Iy7sSjEEo07qD1vjcgyitdIU4Ca9U",
+      "kind": "row",
+      "entry_key": "base:3",
+      "position": 2,
+      "payload": "{\"id\":3,\"name\":\"钻石\",\"icon\":null}"
+    },
+    {
+      "owner_id": "BYjB5rKFyTRBGZZlfBzSItKD1Iy7sSjEEo07qD1vjcgyitdIU4Ca9U",
+      "kind": "row",
+      "entry_key": "drop_entry:3000000",
+      "position": 0,
+      "payload": "{\"id\":3000000,\"package_id\":2000000,\"weight\":1,\"rewards\":[{\"asset_id\":1,\"count\":100,\"probability\":10000},{\"asset_id\":2,\"count\":100,\"probability\":10000}],\"probability\":10000}"
+    },
+    {
+      "owner_id": "BYjB5rKFyTRBGZZlfBzSItKD1Iy7sSjEEo07qD1vjcgyitdIU4Ca9U",
+      "kind": "row",
+      "entry_key": "drop_entry:3000001",
+      "position": 1,
+      "payload": "{\"id\":3000001,\"package_id\":2000001,\"weight\":1,\"rewards\":[{\"asset_id\":1,\"count\":1,\"probability\":10000}],\"probability\":10000}"
+    },
+    {
+      "owner_id": "BYjB5rKFyTRBGZZlfBzSItKD1Iy7sSjEEo07qD1vjcgyitdIU4Ca9U",
+      "kind": "row",
+      "entry_key": "drop_package:2000000",
+      "position": 0,
+      "payload": "{\"id\":2000000,\"name\":\"新手包\",\"selection_mode\":\"weight\"}"
+    },
+    {
+      "owner_id": "BYjB5rKFyTRBGZZlfBzSItKD1Iy7sSjEEo07qD1vjcgyitdIU4Ca9U",
+      "kind": "row",
+      "entry_key": "drop_package:2000001",
+      "position": 1,
+      "payload": "{\"id\":2000001,\"name\":\"新手包2\",\"selection_mode\":\"weight\"}"
+    },
+    {
+      "owner_id": "BYjB5rKFyTRBGZZlfBzSItKD1Iy7sSjEEo07qD1vjcgyitdIU4Ca9U",
+      "kind": "row",
+      "entry_key": "equipment:1000000",
+      "position": 0,
+      "payload": "{\"id\":1000000,\"name\":\"草帽\",\"icon\":null,\"atk\":0,\"def\":1,\"slot\":1,\"crit_rate\":0,\"crit_dmg\":0}"
+    },
+    {
+      "owner_id": "BYjB5rKFyTRBGZZlfBzSItKD1Iy7sSjEEo07qD1vjcgyitdIU4Ca9U",
+      "kind": "row",
+      "entry_key": "equipment:1000001",
+      "position": 1,
+      "payload": "{\"id\":1000001,\"name\":\"布衣\",\"icon\":null,\"atk\":0,\"def\":2,\"slot\":2,\"crit_rate\":0,\"crit_dmg\":0}"
+    },
+    {
+      "owner_id": "BYjB5rKFyTRBGZZlfBzSItKD1Iy7sSjEEo07qD1vjcgyitdIU4Ca9U",
+      "kind": "row",
+      "entry_key": "equipment:1000002",
+      "position": 2,
+      "payload": "{\"id\":1000002,\"name\":\"短裤\",\"icon\":null,\"atk\":0,\"def\":3,\"slot\":3,\"crit_rate\":0,\"crit_dmg\":0}"
+    },
+    {
+      "owner_id": "BYjB5rKFyTRBGZZlfBzSItKD1Iy7sSjEEo07qD1vjcgyitdIU4Ca9U",
+      "kind": "row",
+      "entry_key": "equipment:1000003",
+      "position": 3,
+      "payload": "{\"id\":1000003,\"name\":\"草鞋\",\"icon\":null,\"atk\":0,\"def\":4,\"slot\":4,\"crit_rate\":0,\"crit_dmg\":0}"
+    },
+    {
+      "owner_id": "BYjB5rKFyTRBGZZlfBzSItKD1Iy7sSjEEo07qD1vjcgyitdIU4Ca9U",
+      "kind": "table",
+      "entry_key": "base",
+      "position": 0,
+      "payload": "[{\"key\":\"id\",\"label\":\"ID\",\"type\":\"uint32\",\"required\":true},{\"key\":\"name\",\"label\":\"名称\",\"type\":\"string\",\"required\":true},{\"key\":\"icon\",\"label\":\"图标\",\"type\":\"png\",\"required\":false}]"
+    },
+    {
+      "owner_id": "BYjB5rKFyTRBGZZlfBzSItKD1Iy7sSjEEo07qD1vjcgyitdIU4Ca9U",
+      "kind": "table",
+      "entry_key": "drop_entry",
+      "position": 3,
+      "payload": "[{\"key\":\"id\",\"label\":\"ID\",\"type\":\"uint32\",\"required\":true},{\"key\":\"package_id\",\"label\":\"所属包\",\"type\":\"uint32\",\"required\":true},{\"key\":\"weight\",\"label\":\"权重\",\"type\":\"uint32\",\"required\":true},{\"key\":\"rewards\",\"label\":\"奖励组合\",\"type\":\"asset_list\",\"required\":true},{\"key\":\"probability\",\"label\":\"组合概率(万分率)\",\"type\":\"uint32\",\"required\":true}]"
+    },
+    {
+      "owner_id": "BYjB5rKFyTRBGZZlfBzSItKD1Iy7sSjEEo07qD1vjcgyitdIU4Ca9U",
+      "kind": "table",
+      "entry_key": "drop_package",
+      "position": 2,
+      "payload": "[{\"key\":\"id\",\"label\":\"ID\",\"type\":\"uint32\",\"required\":true},{\"key\":\"name\",\"label\":\"包名称\",\"type\":\"string\",\"required\":true},{\"key\":\"selection_mode\",\"label\":\"组合抽取模式\",\"type\":\"string\",\"required\":true}]"
+    },
+    {
+      "owner_id": "BYjB5rKFyTRBGZZlfBzSItKD1Iy7sSjEEo07qD1vjcgyitdIU4Ca9U",
+      "kind": "table",
+      "entry_key": "equipment",
+      "position": 1,
+      "payload": "[{\"key\":\"id\",\"label\":\"ID\",\"type\":\"uint32\",\"required\":true},{\"key\":\"name\",\"label\":\"名称\",\"type\":\"string\",\"required\":true},{\"key\":\"icon\",\"label\":\"图标\",\"type\":\"png\",\"required\":false},{\"key\":\"atk\",\"label\":\"攻击\",\"type\":\"uint32\",\"required\":true},{\"key\":\"def\",\"label\":\"防御\",\"type\":\"uint32\",\"required\":true},{\"key\":\"slot\",\"label\":\"部位\",\"type\":\"enum\",\"required\":true,\"enum\":\"equipment_slot\"},{\"key\":\"crit_rate\",\"label\":\"暴击率(万分率)\",\"type\":\"uint32\",\"required\":true},{\"key\":\"crit_dmg\",\"label\":\"暴击伤害(万分率)\",\"type\":\"uint32\",\"required\":true}]"
+    }
+  ]
+}

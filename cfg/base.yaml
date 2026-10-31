@@ -1,0 +1,25 @@
+version: 1
+category: "base"
+fields:
+  - key: "id"
+    label: "ID"
+    type: "uint32"
+    required: true
+  - key: "name"
+    label: "名称"
+    type: "string"
+    required: true
+  - key: "icon"
+    label: "图标"
+    type: "png"
+    required: false
+rows:
+  - id: 1
+    name: "金币"
+    icon: null
+  - id: 2
+    name: "银币"
+    icon: null
+  - id: 3
+    name: "钻石"
+    icon: null

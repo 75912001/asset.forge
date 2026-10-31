@@ -13,6 +13,12 @@
 
 日常运行无需安装依赖、构建、ChatGPT 登录或 Cloudflare. 服务只监听本机回环地址, 不加载外部字体.
 
+## 在其他电脑运行
+
+clone 仓库后, 安装 Node.js 22.13+, 双击 start.cmd 即可. 仓库包含已保存的数据库、assets/ 中的图片和 cfg/ 中的 YAML 导出文件. data/local-config.json 使用相对项目目录的 assets 和 cfg 路径, 更换盘符或文件夹无需修改.
+
+未保存的页面草稿不在数据库中. 提交最新数据前先保存页面, 再运行 stop.cmd 停止服务, 确保 SQLite 日志已合并后再提交. 日志、进程号和 SQLite 临时文件不纳入 Git.
+
 ## 数据和备份
 
 - data/workspace.sqlite: 本地 SQLite, 点击保存写入此文件.
