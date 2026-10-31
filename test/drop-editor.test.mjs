@@ -1,0 +1,62 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {emptyAssetTable} from '../public/editor/assets.mjs';
+import {normalizeWorkspace} from '../public/editor/workspace.mjs';
+import {enableDrops} from '../public/editor/drops.mjs';
+const ui=await import('../public/editor/drop-editor.mjs').catch(()=>({}));
+
+test('drop custom PNG references persist in the same package save',async t=>{
+  const elements=new Map(),previousDocument=globalThis.document;t.after(()=>globalThis.document=previousDocument);
+  globalThis.document={getElementById(id){if(!elements.has(id))elements.set(id,{value:'',listeners:{},addEventListener(type,fn){this.listeners[type]=fn;}});return elements.get(id);}};
+  let workspace=normalizeWorkspace(enableDrops({categories:[{key:'item',name:'道具',start:1,end:99}],enums:[],tables:{item:{...emptyAssetTable(),rows:[{id:1}]}}},{start:200,end:209},{start:210,end:219}));
+  workspace.tables.drop_package.fields.push({key:'icon',label:'图标',type:'png',required:false});
+  const path='images/'+'d'.repeat(64)+'.png';
+  const editor=ui.mountDropEditor({getWorkspace:()=>workspace,onDirty(){},notify(){},canEdit:()=>true,onSelectPng:async()=>path,commit:async next=>{workspace=next;return true;}});
+  const click=data=>elements.get('drops-view').listeners.click({target:{closest:()=>({dataset:data})}});
+  const input=(dataset,value)=>elements.get('drops-view').listeners.input({target:{dataset,value}});
+  await click({dropAction:'new'});input({dropPackField:'name'},'图标包');await click({dropAction:'add-entry'});input({dropEntry:'0',rewardIndex:'0',rewardProperty:'asset_id'},'1');
+  await click({pngSelect:'',dropPackField:'icon'});
+  assert.equal(editor.snapshot().pack.icon,path);await click({dropAction:'save'});
+  assert.equal(workspace.tables.drop_package.rows[0].icon,path);
+});
+test('drop editor saves the full aggregate once and retains a failed save as a recoverable draft',async t=>{
+  assert.equal(typeof ui.mountDropEditor,'function','drop editor is missing');
+  const elements=new Map();
+  const previousDocument=globalThis.document,previousConfirm=globalThis.confirm;
+  t.after(()=>{globalThis.document=previousDocument;globalThis.confirm=previousConfirm;});
+  globalThis.document={getElementById(id){if(!elements.has(id))elements.set(id,{value:'',hidden:false,textContent:'',innerHTML:'',listeners:{},addEventListener(type,fn){this.listeners[type]=fn;}});return elements.get(id);}};
+  globalThis.confirm=()=>true;
+  let workspace=normalizeWorkspace(enableDrops({categories:[{key:'item',name:'道具',start:1,end:99}],enums:[],tables:{item:{...emptyAssetTable(),rows:[{id:1}]}}},{start:200,end:209},{start:210,end:219}));
+  let calls=0,fail=true;
+  const editor=ui.mountDropEditor({getWorkspace:()=>workspace,onDirty(){},notify(){},canEdit:()=>true,commit:async next=>{calls++;if(fail)return false;workspace=normalizeWorkspace(next);return true;}});
+  const click=async data=>elements.get('drops-view').listeners.click({target:{closest:()=>({dataset:data})}});
+  const input=(data,value)=>elements.get('drops-view').listeners.input({target:{dataset:data,value}});
+  await click({dropAction:'new'});input({dropPackField:'name'},'组合包');await click({dropAction:'add-entry'});
+  assert.deepEqual(editor.snapshot().entries[0].rewards,[{asset_id:'',count:1,probability:10000}],'adding a combination must immediately show an editable reward probability');
+  assert.match(elements.get('drop-entries').innerHTML,/data-reward-property="probability"/);
+  input({dropEntry:'0',dropField:'weight'},'10');
+  input({dropEntry:'0',rewardIndex:'0',rewardProperty:'asset_id'},'1');input({dropEntry:'0',rewardIndex:'0',rewardProperty:'count'},'3');
+  input({dropEntry:'0',rewardIndex:'0',rewardProperty:'probability'},'10001');await click({dropAction:'save'});assert.equal(calls,0,'invalid probabilities must not reach cloud save');
+  input({dropEntry:'0',rewardIndex:'0',rewardProperty:'probability'},'5000');
+  await click({dropAction:'save'});assert.equal(calls,1);assert.equal(workspace.tables.drop_package.rows.length,0);assert.equal(editor.hasUnsaved(),true);
+  const backup=editor.snapshot();assert.equal(backup.entries[0].rewards[0].probability,'5000');editor.reset();editor.restore(backup);assert.equal(editor.hasUnsaved(),true);
+  fail=false;await click({dropAction:'save'});assert.equal(calls,2);assert.equal(editor.hasUnsaved(),false);
+  assert.equal(workspace.tables.drop_package.rows[0].name,'组合包');assert.deepEqual(workspace.tables.drop_entry.rows[0].rewards,[{asset_id:1,count:3,probability:5000}]);
+  await click({dropAction:'delete'});assert.equal(calls,3);assert.equal(workspace.tables.drop_package.rows.length,0);assert.equal(workspace.tables.drop_entry.rows.length,0);
+});
+
+test('legacy migration previews the original range, backs up before one commit, and keeps failed attempts unchanged',async t=>{
+  const elements=new Map(),previousDocument=globalThis.document;
+  t.after(()=>{globalThis.document=previousDocument;});
+  globalThis.document={getElementById(id){if(!elements.has(id))elements.set(id,{value:'',hidden:false,textContent:'',innerHTML:'',listeners:{},addEventListener(type,fn){this.listeners[type]=fn;}});return elements.get(id);}};
+  let workspace=normalizeWorkspace({categories:[{key:'loot_bag',name:'掉落包',start:200,end:209}],enums:[],tables:{loot_bag:emptyAssetTable()}}),fail=true;
+  const events=[];
+  ui.mountDropEditor({getWorkspace:()=>workspace,onDirty(){},notify(){},canEdit:()=>true,onBackup:()=>events.push('backup'),commit:async next=>{events.push('commit');if(fail)return false;workspace=normalizeWorkspace(next);return true;}});
+  assert.match(elements.get('drop-migration-summary').textContent,/200.*209/);
+  assert.equal(elements.get('drop-migrate').hidden,false);assert.equal(elements.get('drop-enable').hidden,true);
+  document.getElementById('drop-entry-start').value='210';document.getElementById('drop-entry-end').value='219';
+  const click=()=>elements.get('drops-view').listeners.click({target:{closest:()=>({dataset:{dropAction:'migrate'}})}});
+  await click();assert.deepEqual(events,['backup','commit']);assert.equal(workspace.categories[0].key,'loot_bag');
+  fail=false;await click();assert.deepEqual(events,['backup','commit','backup','commit']);
+  assert.equal(workspace.categories[0].key,'drop_package');assert.equal(workspace.categories[0].start,200);assert.equal(workspace.categories[0].end,209);
+});
