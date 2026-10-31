@@ -64,7 +64,12 @@ export async function createLocalServer({root=projectRoot,dataDir=join(root,'dat
         if(!['resourcesRoot','exportRoot'].every(key=>typeof next[key]==='string'&&next[key].trim()))return send(400,{error:'请填写资源目录和导出目录'});
         const resourcesRoot=await realpath(resolve(root,next.resourcesRoot));
         if(!(await stat(resourcesRoot)).isDirectory())return send(400,{error:'资源目录无效'});
-        const updated={resourcesRoot,exportRoot:resolve(root,next.exportRoot)};await writeAtomic(join(dataDir,'local-config.json'),JSON.stringify(updated,null,2));config=updated;return send(200,config);
+        const updated={resourcesRoot,exportRoot:resolve(root,next.exportRoot)},stored={...updated};
+        for(const key of ['resourcesRoot','exportRoot']) {
+          const path=resolve(root,next[key]);
+          if(within(root,path))stored[key]=relative(root,path).replaceAll('\\','/')||'.';
+        }
+        await writeAtomic(join(dataDir,'local-config.json'),JSON.stringify(stored,null,2));config=updated;return send(200,config);
       }
       if(url.pathname==='/api/export'&&method==='POST') {
         const input=await request.json();

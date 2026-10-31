@@ -1,10 +1,32 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,mkdir,writeFile,readFile,rm} from 'node:fs/promises';
+import {mkdtemp,mkdir,writeFile,readFile,rm,cp,rename} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
 const local=await import('../local/server.mjs').catch(()=>({}));
 const seed={revision:13,updatedAt:'2026-10-29T06:00:00.000Z',workspace:{categories:[{key:'equipment',name:'装备',start:1,end:9}],enums:[],tables:{equipment:{fields:[{key:'id',label:'ID',type:'uint32',required:true},{key:'name',label:'名称',type:'string',required:true},{key:'icon',label:'图标',type:'png',required:false}],rows:[{id:1,name:'草帽',icon:null}]}}}};
+test('saving project directories keeps images and exports working after moving the project',async t=>{
+  const dir=await mkdtemp(join(tmpdir(),'asset-forge-move-')),root=join(dir,'original'),moved=join(dir,'moved');
+  let instance;
+  t.after(async()=>{await instance?.close();await rm(dir,{recursive:true,force:true});});
+  await mkdir(join(root,'assets','装备'),{recursive:true});
+  await cp(resolve('drizzle'),join(root,'drizzle'),{recursive:true});
+  const bytes=Uint8Array.from([137,80,78,71,13,10,26,10]);
+  await writeFile(join(root,'assets','装备','草帽.png'),bytes);
+  const initial=structuredClone(seed);initial.workspace.tables.equipment.rows[0].icon='装备/草帽.png';
+  instance=await local.createLocalServer({root,seed:initial});await instance.listen(0);
+  const response=await fetch(instance.url+'/api/local-config',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({resourcesRoot:join(root,'assets'),exportRoot:join(root,'cfg')})});
+  assert.equal(response.status,200);
+  assert.deepEqual(JSON.parse(await readFile(join(root,'data','local-config.json'),'utf8')),{resourcesRoot:'assets',exportRoot:'cfg'});
+  await instance.close();await rename(root,moved);
+  instance=await local.createLocalServer({root:moved});await instance.listen(0);
+  const image=await fetch(instance.url+'/api/images?file='+encodeURIComponent('装备/草帽.png'));
+  assert.equal(image.status,200);assert.deepEqual(new Uint8Array(await image.arrayBuffer()),bytes);
+  const exported=await fetch(instance.url+'/api/export',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({scope:'equipment',filename:'asset-categories.yaml',expectedRevision:13})});
+  assert.equal(exported.status,200);
+  assert.equal((await exported.json()).directory,join(moved,'cfg'));
+  assert.match(await readFile(join(moved,'cfg','equipment.yaml'),'utf8'),/icon: "装备\/草帽.png"/);
+});
 test('local server persists migrated workspace and relative icon references without uploading or copying PNG',async t=>{
   assert.equal(typeof local.createLocalServer,'function','local server is missing');
   const dir=await mkdtemp(join(tmpdir(),'asset-forge-local-')),assets=join(dir,'assets');
