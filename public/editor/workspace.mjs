@@ -2,6 +2,7 @@ import {validateCategories,toYaml} from './model.mjs';
 import {emptyAssetTable,normalizeAssetTable,assetTableYaml} from './assets.mjs';
 import {normalizeEnums,seedEnums,enumsYaml} from './enums.mjs';
 import {validateDrops,assertDropTransition} from './drops.mjs';
+import {normalizeChestAppearances,chestAppearancesYaml} from './chest-appearances.mjs';
 const workspaceKey='asset-forge-workspace-v2';
 export function normalizeWorkspace(workspace) {
   if (!Array.isArray(workspace.categories)) throw new Error('分类数据格式无效');
@@ -10,7 +11,8 @@ export function normalizeWorkspace(workspace) {
   const categories=workspace.categories.map(category=>({...category,start:Number(category.start),end:Number(category.end)}));
   const enums=normalizeEnums(workspace.enums===undefined?seedEnums():workspace.enums);
   const tables=Object.fromEntries(categories.map(category=>[category.key,normalizeAssetTable(category,Object.hasOwn(workspace.tables||{},category.key)?workspace.tables[category.key]:emptyAssetTable(),enums)]));
-  const saved={categories,tables,enums};validateDrops(saved);return saved;
+  const chestAppearances=normalizeChestAppearances(workspace.chestAppearances);
+  const saved={categories,tables,enums,chestAppearances};validateDrops(saved);return saved;
 }
 export function readWorkspace(storage,fallbackCategories) {
   const saved=storage.getItem(workspaceKey);
@@ -55,6 +57,6 @@ export function replaceEnum(workspace,previousKey,definition) {
 export function workspaceFiles(workspace,categoryFilename) {
   const saved=normalizeWorkspace(workspace);
   const names=saved.categories.map(category=>`${category.key}.yaml`);
-  if([...names,'asset-enums.yaml'].includes(categoryFilename.toLowerCase())) throw new Error('分类配置文件名与资产表或枚举配置文件名冲突, 请修改分类配置文件名');
-  return [{name:categoryFilename,content:toYaml(saved.categories)},{name:'asset-enums.yaml',content:enumsYaml(saved.enums)},...saved.categories.map(category=>({name:`${category.key}.yaml`,content:assetTableYaml(category,saved.tables[category.key],saved.enums)}))];
+  if([...names,'asset-enums.yaml','chest-appearances.yaml'].includes(categoryFilename.toLowerCase())) throw new Error('分类配置文件名与资产表或枚举配置文件名冲突, 请修改分类配置文件名');
+  return [{name:categoryFilename,content:toYaml(saved.categories)},{name:'asset-enums.yaml',content:enumsYaml(saved.enums)},{name:'chest-appearances.yaml',content:chestAppearancesYaml(saved.chestAppearances)},...saved.categories.map(category=>({name:`${category.key}.yaml`,content:assetTableYaml(category,saved.tables[category.key],saved.enums)}))];
 }

@@ -13,8 +13,12 @@ function database() {
     catch(error){sqlite.exec('ROLLBACK');throw error;}
   }};return db;
 }
-const workspace=()=>({categories:[{key:'equipment',name:'装备',start:100,end:199},{key:'drops',name:'掉落包',start:200,end:299}],enums:[{key:'slot',label:'部位',items:[{key:'undefined',label:'未定义',value:0},{key:'head',label:'头部',value:1}]}],tables:{equipment:{fields:[{key:'id',label:'ID',type:'uint32',required:true},{key:'slot',label:'部位',type:'enum',enum:'slot',required:true},{key:'amount',label:'数量',type:'uint64',required:true},{key:'enabled',label:'启用',type:'bool',required:true}],rows:[{id:100,slot:0,amount:'18446744073709551615',enabled:false}]},drops:{fields:[{key:'id',label:'ID',type:'uint32',required:true}],rows:[{id:200}]}}});
-async function call(db,{user='user-a',method='GET',body,path='/api/workspace',origin='https://forge.test',bucket}={}) {
+const workspace=()=>({chestAppearances:[],categories:[{key:'equipment',name:'装备',start:100,end:199},{key:'drops',name:'掉落包',start:200,end:299}],enums:[{key:'slot',label:'部位',items:[{key:'undefined',label:'未定义',value:0},{key:'head',label:'头部',value:1}]}],tables:{equipment:{fields:[{key:'id',label:'ID',type:'uint32',required:true},{key:'slot',label:'部位',type:'enum',enum:'slot',required:true},{key:'amount',label:'数量',type:'uint64',required:true},{key:'enabled',label:'启用',type:'bool',required:true}],rows:[{id:100,slot:0,amount:'18446744073709551615',enabled:false}]},drops:{fields:[{key:'id',label:'ID',type:'uint32',required:true}],rows:[{id:200},{id:201}]}}});
+function dropWorkspace() {
+  const w=workspace();w.chestAppearances=[{id:1,name:'木箱',icon:'chests/wood.png'}];
+  return normalizeWorkspace(enableDrops(w,{start:300,end:309},{start:310,end:399}));
+}
+async function call(db,{user='user-a',method='GET',body,path='/api/workspace',origin='https://forge.test',bucket={head:async key=>key==='user-a/chests/wood.png'?{}:null}}={}) {
   const headers={'Content-Type':'application/json','Origin':origin};if(user)headers['oai-authenticated-user-id']=user;
   const request=new Request('https://forge.test'+path,{method,headers,...(body?{body:JSON.stringify(body)}:{})});
   const response=await api.handleWorkspaceRequest(request,db,bucket);return {status:response.status,data:await response.json()};
@@ -77,8 +81,8 @@ test('writes reject cross-origin requests, missing revisions, and more than ten 
 
 test('drop aggregates persist arrays and reject conflicting saves, invalid deletes, and schema bypasses atomically',async()=>{
   const db=database();
-  const base=normalizeWorkspace(enableDrops(workspace(),{start:300,end:309},{start:310,end:399}));
-  const full=normalizeWorkspace(saveDropPackage(base,{id:300,name:'组合宝箱'},[{id:310,package_id:300,weight:4294967295,rewards:[{asset_id:100,count:3}]}]));
+  const base=dropWorkspace();
+  const full=normalizeWorkspace(saveDropPackage(base,{id:300,chest_appearance_id:1,name:'组合宝箱'},[{id:310,package_id:300,weight:4294967295,rewards:[{asset_id:100,count:3}]}]));
   assert.equal((await call(db,{method:'POST',path:'/api/workspace/migrate',body:{workspace:full,expectedRevision:0,requestId:'drop-test'}})).status,200);
   assert.deepEqual((await call(db)).data.workspace,full);
   const changed=structuredClone(full);changed.tables.drop_entry.rows[0].rewards[0].count=5;
@@ -107,8 +111,8 @@ test('legacy category migration is one revision and stale retries cannot duplica
 });
 
 test('cloud loading defaults legacy rewards without a write, and saves exact per-item probabilities',async()=>{
-  const db=database(),base=normalizeWorkspace(enableDrops(workspace(),{start:300,end:309},{start:310,end:399}));
-  const full=normalizeWorkspace(saveDropPackage(base,{id:300,name:'概率测试'},[{id:310,package_id:300,weight:1,rewards:[{asset_id:100,count:1},{asset_id:200,count:2}]}]));
+  const db=database(),base=dropWorkspace();
+  const full=normalizeWorkspace(saveDropPackage(base,{id:300,chest_appearance_id:1,name:'概率测试'},[{id:310,package_id:300,weight:1,rewards:[{asset_id:100,count:1},{asset_id:200,count:2},{asset_id:201,count:1}]}]));
   await call(db,{method:'POST',path:'/api/workspace/migrate',body:{workspace:full,expectedRevision:0,requestId:'probability'}});
   const legacy=structuredClone(full.tables.drop_entry.rows[0]);for(const reward of legacy.rewards)delete reward.probability;
   await db.batch([db.prepare('UPDATE workspace_records SET payload=? WHERE owner_id=? AND kind=? AND entry_key=?').bind(JSON.stringify(legacy),'user-a','row','drop_entry:310')]);
@@ -122,10 +126,10 @@ test('cloud loading defaults legacy rewards without a write, and saves exact per
 });
 
 test('cloud round trips probability mode and independent combination rates, rejects invalid rates and protects concurrent switches',async()=>{
-  const db=database(),base=normalizeWorkspace(enableDrops(workspace(),{start:300,end:309},{start:310,end:399}));
-  const full=normalizeWorkspace(saveDropPackage(base,{id:300,name:'组合概率',selection_mode:'probability'},[
+  const db=database(),base=dropWorkspace();
+  const full=normalizeWorkspace(saveDropPackage(base,{id:300,chest_appearance_id:1,name:'组合概率',selection_mode:'probability'},[
     {id:310,package_id:300,weight:1,probability:10000,rewards:[{asset_id:100,count:1}]},
-    {id:311,package_id:300,weight:2,probability:0,rewards:[{asset_id:100,count:2,probability:5000}]}
+    {id:311,package_id:300,weight:2,probability:0,rewards:[{asset_id:100,count:2,probability:5000},{asset_id:200,count:1,probability:10000}]}
   ]));
   assert.equal((await call(db,{method:'POST',path:'/api/workspace/migrate',body:{workspace:full,expectedRevision:0,requestId:'modes'}})).status,200);
   assert.deepEqual((await call(db)).data.workspace,full);

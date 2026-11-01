@@ -2,7 +2,7 @@ import {nextAssetId} from './assets.mjs';
 import {normalizeWorkspace} from './workspace.mjs';
 import {enableDrops,migrateLootBag,isDropCategory,saveDropPackage,deleteDropPackage,totalWeight} from './drops.mjs';
 import {rewardAssets,rewardListHtml,updateRewardProbability,rewardProbabilityText} from './rewards.mjs';
-import {pngCellHtml} from './png.mjs';
+import {pngCellHtml,pngUrl,isPngReference} from './png.mjs';
 import {openRewardPicker} from './reward-picker.mjs';
 
 export function mountDropEditor({getWorkspace,commit,onDirty,notify,canEdit,onBackup,onSelectPng}) {
@@ -15,7 +15,7 @@ export function mountDropEditor({getWorkspace,commit,onDirty,notify,canEdit,onBa
   function setDirty(value){dirty=value;$('drop-save-state').textContent=value?'有未保存的修改':'已保存到本地';onDirty();}
   function probabilities() {
     if(pack?.selection_mode==='probability') {
-      $('drop-total').textContent=`每条组合独立判定 · 可命中 0-${entries.length} 个组合`;
+      $('drop-total').textContent=`每条组合独立判定 · 至少一个 100% 组合, 命中 1-${entries.length} 个组合 · 每个组合至少一项 100% 奖励`;
       entries.forEach((entry,index)=>{$(`drop-probability-${index}`).textContent=`组合概率: ${rewardProbabilityText(entry.probability)}`;});return;
     }
     const valid=entries.every(entry=>/^\d+$/.test(String(entry.weight))&&Number(entry.weight)>0&&Number(entry.weight)<=4294967295);
@@ -34,11 +34,22 @@ export function mountDropEditor({getWorkspace,commit,onDirty,notify,canEdit,onBa
     return `<input ${attrs} value="${esc(value??'')}" ${field.type!=='string'?'inputmode="numeric"':''}>`;
   }
   function custom(key,record,attrs) {
-    const core=key==='drop_package'?['id','name','selection_mode']:['id','package_id','weight','probability','rewards'];
+    const core=key==='drop_package'?['id','name','selection_mode','chest_appearance_id']:['id','package_id','weight','probability','rewards'];
     return getWorkspace().tables[key].fields.filter(field=>!core.includes(field.key)).map(field=>{
       const tag=field.type==='png'?'div':'label';
       return `<${tag} class="drop-custom-field">${esc(field.label)} ${field.required?'<b>*</b>':''}${scalar(field,record[field.key],attrs+` ${key==='drop_package'?'data-drop-pack-field':'data-drop-field'}="${esc(field.key)}"`)}</${tag}>`;
     }).join('');
+  }
+  function appearanceIcon(id,attrs='') {
+    const appearance=getWorkspace().chestAppearances?.find(row=>String(row.id)===String(id));
+    return appearance&&isPngReference(appearance.icon)?`<img ${attrs} src="${pngUrl(appearance.icon)}" alt="${esc(appearance.name)}" width="48" height="48" loading="lazy">`:'';
+  }
+  function renderAppearance() {
+    const choices=getWorkspace().chestAppearances||[],id=String(pack.chest_appearance_id??'');
+    $('drop-chest-appearance').innerHTML=`<option value="" ${id===''?'selected':''}>请选择宝箱外观...</option>${id!==''&&!choices.some(row=>String(row.id)===id)?`<option value="${esc(id)}" selected>无效外观: ${esc(id)}</option>`:''}`+choices.map(row=>`<option value="${row.id}" ${String(row.id)===id?'selected':''}>${esc(row.name)} · ${row.id}</option>`).join('');
+    $('drop-chest-appearance').value=id;
+    const appearance=choices.find(row=>String(row.id)===id);
+    $('drop-chest-preview').innerHTML=appearance?appearanceIcon(id)+`<span>${esc(appearance.name)}</span>`:'<span>尚未选择宝箱外观, 请先在宝箱外观页面配置.</span>';
   }
   function render() {
     $('drop-workspace').inert=uploading;
@@ -53,12 +64,12 @@ export function mountDropEditor({getWorkspace,commit,onDirty,notify,canEdit,onBa
       return;
     }
     const workspace=getWorkspace(),packages=workspace.tables.drop_package.rows;
-    $('drop-packages').innerHTML=packages.map(row=>`<button class="drop-package-item ${pack?.id===row.id?'selected':''}" data-drop-action="open" data-drop-id="${row.id}"><strong>${esc(row.name)}</strong><small>${row.id} · ${workspace.tables.drop_entry.rows.filter(entry=>entry.package_id===row.id).length} 个组合</small></button>`).join('')||'<p class="field-help">还没有掉落包. 创建一个包并添加奖励组合.</p>';
+    $('drop-packages').innerHTML=packages.map(row=>`<button class="drop-package-item ${pack?.id===row.id?'selected':''}" data-drop-action="open" data-drop-id="${row.id}">${appearanceIcon(row.chest_appearance_id,'class="drop-package-icon"')}<strong>${esc(row.name)}</strong><small>${row.id} · ${workspace.tables.drop_entry.rows.filter(entry=>entry.package_id===row.id).length} 个组合</small></button>`).join('')||'<p class="field-help">还没有掉落包. 创建一个包并添加奖励组合.</p>';
     $('drop-package-editor').hidden=!pack;$('drop-placeholder').hidden=!!pack;
     if(!pack)return;
-    $('drop-package-id').textContent=pack.id;$('drop-package-name').value=pack.name;
+    $('drop-package-id').textContent=pack.id;$('drop-package-name').value=pack.name;renderAppearance();
     $('drop-mode-weight').checked=pack.selection_mode!=='probability';$('drop-mode-probability').checked=pack.selection_mode==='probability';
-    $('drop-mode-help').textContent=pack.selection_mode==='probability'?'组合概率使用万分率, 10000 = 100%, 5000 = 50%.':'权重无需合计为 10000, 只比较相对大小.';
+    $('drop-mode-help').textContent=pack.selection_mode==='probability'?'组合概率使用万分率, 10000 = 100%, 5000 = 50%. 至少一个组合必须为 100%, 每个组合至少一项奖励为 100%.':'权重无需合计为 10000, 只比较相对大小.';
     $('drop-package-custom').innerHTML=custom('drop_package',pack,'');
     $('drop-delete').hidden=!packages.some(row=>row.id===pack.id);
     const assets=rewardAssets(workspace);
@@ -88,6 +99,7 @@ export function mountDropEditor({getWorkspace,commit,onDirty,notify,canEdit,onBa
     else if(field)record[field]=input.value;else return;
     setDirty(true);error();if(!data.rewardProperty&&['weight','probability'].includes(field))probabilities();
     if(field==='selection_mode')render();
+    if(field==='chest_appearance_id')renderAppearance();
     if(data.rewardProperty==='probability')updateRewardProbability(input);
   });
   $('drops-view').addEventListener('error',event=>{if(event.target.matches('.reward-asset-thumb img'))event.target.hidden=true;},true);
@@ -127,7 +139,7 @@ export function mountDropEditor({getWorkspace,commit,onDirty,notify,canEdit,onBa
         if(action==='open'){load(Number(data.dropId));return;}
         const id=nextAssetId(category('drop_package'),getWorkspace().tables.drop_package.rows);
         if(id===null)throw new Error('掉落包 ID 范围已用满');
-        pack={...initial('drop_package'),id,name:'',selection_mode:'weight'};entries=[];setDirty(true);error();render();return;
+        pack={...initial('drop_package'),id,name:'',selection_mode:'weight',chest_appearance_id:''};entries=[];setDirty(true);error();render();return;
       }
       if(!pack)return;
       if(action==='save') {

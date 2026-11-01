@@ -40,7 +40,12 @@ yarn-error.log*
 /.sites-runtime/
 
 # Workspace scaffolding and publication archives
-/.agents/
+/.agents/*
+# 仅纳入本项目共享技能, 其他工具本地状态继续忽略.
+!/.agents/skills/
+/.agents/skills/*
+!/.agents/skills/create-character/
+!/.agents/skills/create-icon/
 /.codex/
 /outputs/
 /work/
@@ -53,3 +58,8 @@ yarn-error.log*
 /data/*.sqlite-wal
 /data/*.sqlite-shm
 /data/*.sqlite-journal
+/projects/*/*.sqlite-wal
+/projects/*/*.sqlite-shm
+/projects/*/*.sqlite-journal
+# 迁移前快照仅保存在本机, 当前项目数据库仍纳入版本管理.
+/projects/*/backups/before-chest-appearances-*.sqlite

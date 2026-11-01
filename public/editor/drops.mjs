@@ -1,5 +1,5 @@
 export const DROP_FIELDS={
-  drop_package:[{key:'id',label:'ID',type:'uint32',required:true},{key:'name',label:'包名称',type:'string',required:true},{key:'selection_mode',label:'组合抽取模式',type:'string',required:true}],
+  drop_package:[{key:'id',label:'ID',type:'uint32',required:true},{key:'name',label:'包名称',type:'string',required:true},{key:'selection_mode',label:'组合抽取模式',type:'string',required:true},{key:'chest_appearance_id',label:'宝箱外观',type:'uint32',required:true}],
   drop_entry:[{key:'id',label:'ID',type:'uint32',required:true},{key:'package_id',label:'所属包',type:'uint32',required:true},{key:'weight',label:'权重',type:'uint32',required:true},{key:'probability',label:'组合概率(万分率)',type:'uint32',required:true},{key:'rewards',label:'奖励组合',type:'asset_list',required:true}]
 };
 export const isDropCategory=category=>Object.hasOwn(DROP_FIELDS,category?.system||'');
@@ -28,6 +28,7 @@ export function migrateLootBag(workspace,entryRange) {
   if(name&&name.type!=='string')throw new Error('旧 name 字段不是 string, 请先处理字段冲突');
   const fields=table.fields.map(field=>field.key==='name'?{...field,required:true}:{...field});
   if(!name)fields.push({...DROP_FIELDS.drop_package.find(field=>field.key==='name')});
+  fields.push({...DROP_FIELDS.drop_package.find(field=>field.key==='chest_appearance_id')});
   const tables={...workspace.tables,drop_package:{fields,rows:table.rows.map(row=>({...row}))},drop_entry:{fields:DROP_FIELDS.drop_entry.map(field=>({...field})),rows:[]}};
   delete tables.loot_bag;
   return {...workspace,categories:[...workspace.categories.map(category=>category===legacy?{...category,key:'drop_package',system:'drop_package'}:category),{key:'drop_entry',system:'drop_entry',name:'掉落条目',...entryRange,description:'支持权重选一或概率独立判定, 命中后按各奖励项的万分率独立判定.'}],tables};
@@ -39,21 +40,29 @@ export function validateDrops(workspace) {
     const field=workspace.tables[category.key].fields.find(field=>field.key===core.key);
     if(!field||field.type!==core.type||field.required!==true)throw new Error(`掉落核心字段 ${category.key}.${core.key} 的标识、类型和必填规则不可修改`);
   }
-  const assetIds=new Set(workspace.categories.filter(category=>!category.system).flatMap(category=>workspace.tables[category.key].rows.map(row=>row.id)));
+  const assetIds=new Set(workspace.categories.filter(category=>!category.system||category.system==='drop_package').flatMap(category=>workspace.tables[category.key].rows.map(row=>row.id)));
   for(const [key,table] of Object.entries(workspace.tables))for(const field of table.fields.filter(field=>field.type==='asset_list'))for(const row of table.rows)for(const reward of row[field.key]||[]) {
-    if(!assetIds.has(reward.asset_id))throw new Error(`${key} / ${row.id}: 奖励资产 ${reward.asset_id} 不存在或属于掉落结构. 被引用资产不能删除.`);
+    if(!assetIds.has(reward.asset_id))throw new Error(`${key} / ${row.id}: 奖励资产 ${reward.asset_id} 不存在或不是可发放资产/掉落包. 被引用的奖励不能删除.`);
   }
   if(!marked.length)return;
   const packages=workspace.tables.drop_package.rows,entries=workspace.tables.drop_entry.rows;
-  for(const pack of packages)if(!['weight','probability'].includes(pack.selection_mode))throw new Error(`掉落包 ${pack.id}: 组合抽取模式必须为 weight 或 probability`);
+  const appearanceIds=new Set((workspace.chestAppearances||[]).map(appearance=>appearance.id));
+  for(const pack of packages) {
+    if(!['weight','probability'].includes(pack.selection_mode))throw new Error(`掉落包 ${pack.id}: 组合抽取模式必须为 weight 或 probability`);
+    if(!appearanceIds.has(pack.chest_appearance_id))throw new Error(`掉落包 ${pack.id}: 宝箱外观 ${pack.chest_appearance_id} 不存在. 请选择有效外观, 被引用的外观不能删除或修改 ID.`);
+  }
   const ids=new Set(packages.map(row=>row.id)),counts=new Map();
   for(const entry of entries) {
     if(!ids.has(entry.package_id))throw new Error(`条目 ${entry.id}: 所属掉落包 ${entry.package_id} 不存在`);
     if(entry.weight<=0)throw new Error(`条目 ${entry.id}: 权重必须大于 0`);
     if(entry.probability>10000)throw new Error(`条目 ${entry.id}: 组合概率必须是 0-10000 的整数`);
+    if(!entry.rewards.some(reward=>reward.probability===10000))throw new Error(`掉落包 ${entry.package_id} / 组合 ${entry.id}: 至少需要一项概率为 100% 的奖励, 保证开启结果非空`);
     counts.set(entry.package_id,(counts.get(entry.package_id)||0)+1);
   }
-  for(const pack of packages)if(!counts.has(pack.id))throw new Error(`掉落包 ${pack.id} 至少需要一条有效条目`);
+  for(const pack of packages) {
+    if(!counts.has(pack.id))throw new Error(`掉落包 ${pack.id} 至少需要一条有效条目`);
+    if(pack.selection_mode==='probability'&&!entries.some(entry=>entry.package_id===pack.id&&entry.probability===10000))throw new Error(`掉落包 ${pack.id}: 概率模式至少需要一个命中概率为 100% 的组合, 保证开启结果非空`);
+  }
 }
 export function assertDropTransition(previous,next) {
   for(const category of previous.categories.filter(isDropCategory))if(!next.categories.some(candidate=>candidate.key===category.key&&candidate.system===category.system))throw new Error('已启用的掉落分类不能删除、改标识或移除结构标记. 请在掉落包页面删除包及所属条目.');

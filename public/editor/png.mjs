@@ -1,3 +1,4 @@
+import {projectApi} from './projects.mjs';
 export const PNG_MAX_BYTES=2*1024*1024;
 export function normalizePngReference(value) {
   if(typeof value!=='string'||value.length>2048||!value||!value.toLowerCase().endsWith('.png')||/[\\:*?"<>|\u0000-\u001f]/.test(value)||value.split('/').some(part=>!part||part==='.'||part==='..'))throw new Error('请使用资源目录内 PNG 的相对路径, 例如 equipment/hat.png');
@@ -24,7 +25,7 @@ export function inspectPng(bytes) {
   }
   throw new Error('PNG 文件不完整或格式无效');
 }
-export const pngUrl=path=>'/api/images?file='+encodeURIComponent(normalizePngReference(path));
+export const pngUrl=path=>projectApi('/images')+'?file='+encodeURIComponent(normalizePngReference(path));
 export function pngCellHtml(value,attrs,label) {
   const valid=isPngReference(value);
   const esc=text=>String(text).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -36,5 +37,6 @@ export function pngReferences(workspace,keys=workspace.categories.map(cat=>cat.k
     const table=workspace.tables[key];
     for(const field of table.fields.filter(field=>field.type==='png'))for(const row of table.rows)if(row[field.key])paths.add(normalizePngReference(row[field.key]));
   }
+  for(const appearance of workspace.chestAppearances||[])paths.add(normalizePngReference(appearance.icon));
   return [...paths];
 }

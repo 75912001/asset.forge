@@ -6,7 +6,7 @@ export function filterRewardAssets(assets,query) {
 }
 export function rewardPickerHtml(asset) {
   const image=isPngReference(asset?.icon);
-  return `<span class="reward-asset-thumb" aria-hidden="true">▦${image?`<img src="${pngUrl(asset.icon)}" alt="" width="36" height="36" loading="lazy">`:''}</span><span class="reward-asset-text"><strong>${esc(asset?.name??'选择道具或装备...')}</strong><small>${asset?`${esc(asset.category)} · ${esc(asset.id)}`:'搜索名称 / 分类 / ID'}</small></span>`;
+  return `<span class="reward-asset-thumb" aria-hidden="true">▦${image?`<img src="${pngUrl(asset.icon)}" alt="" width="36" height="36" loading="lazy">`:''}</span><span class="reward-asset-text"><strong>${esc(asset?.name??'选择资产或掉落包...')}</strong><small>${asset?`${esc(asset.category)} · ${esc(asset.id)}`:'搜索名称 / 分类 / ID'}</small></span>`;
 }
 let activePicker=null,pickerId=0;
 export function openRewardPicker(button,assets) {
@@ -15,7 +15,7 @@ export function openRewardPicker(button,assets) {
   const popup=document.createElement('div');
   popup.id=`reward-picker-${++pickerId}`;popup.className='reward-picker-popup';popup.popover='auto';
   popup.setAttribute('role','dialog');popup.setAttribute('aria-label','选择奖励资产');
-  popup.innerHTML='<div class="reward-picker-heading"><strong>选择奖励资产</strong><button type="button" class="table-icon-button" data-picker-close aria-label="关闭资产选择">×</button></div><div class="reward-picker-search"><input type="search" aria-label="搜索奖励资产" placeholder="搜索名称、分类或 ID" autocomplete="off"></div><p class="reward-picker-count" role="status"></p><div class="reward-picker-options" role="listbox" aria-label="道具和装备"></div><div class="reward-picker-footer"><span>↑ ↓ 选择 · Enter 确认 · Esc 关闭</span><button type="button" class="text-button" data-picker-clear>清空选择</button></div>';
+  popup.innerHTML='<div class="reward-picker-heading"><strong>选择奖励资产</strong><button type="button" class="table-icon-button" data-picker-close aria-label="关闭资产选择">×</button></div><div class="reward-picker-search"><input type="search" aria-label="搜索奖励资产" placeholder="搜索名称、分类或 ID" autocomplete="off"></div><p class="reward-picker-count" role="status"></p><div class="reward-picker-options" role="listbox" aria-label="资产和掉落包"></div><div class="reward-picker-footer"><span>↑ ↓ 选择 · Enter 确认 · Esc 关闭</span><button type="button" class="text-button" data-picker-clear>清空选择</button></div>';
   const input=popup.querySelector('input'),list=popup.querySelector('[role="listbox"]');
   let closed=false;
   function close(focus=false) {

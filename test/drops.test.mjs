@@ -5,7 +5,7 @@ import {normalizeWorkspace,workspaceFiles} from '../public/editor/workspace.mjs'
 import {emptyAssetTable} from '../public/editor/assets.mjs';
 const drops=await import('../public/editor/drops.mjs').catch(()=>({}));
 export function fixture() {
-  return {categories:[{key:'item',name:'道具',start:0,end:99},{key:'equipment',name:'装备',start:100,end:199}],enums:[],tables:{item:{...emptyAssetTable(),rows:[{id:0},{id:1}]},equipment:{...emptyAssetTable(),rows:[{id:100}]}}};
+  return {chestAppearances:[{id:1,name:'木箱',icon:'icons/chests/wood.png'}],categories:[{key:'item',name:'道具',start:0,end:99},{key:'equipment',name:'装备',start:100,end:199}],enums:[],tables:{item:{...emptyAssetTable(),rows:[{id:0},{id:1}]},equipment:{...emptyAssetTable(),rows:[{id:100}]}}};
 }
 export function enabled() {
   assert.equal(typeof drops.enableDrops,'function','explicit drop setup is missing');
@@ -13,7 +13,7 @@ export function enabled() {
 }
 export function populated() {
   const w=enabled();
-  return normalizeWorkspace(drops.saveDropPackage(w,{id:200,name:'宝箱'},[
+  return normalizeWorkspace(drops.saveDropPackage(w,{id:200,chest_appearance_id:1,name:'宝箱'},[
     {id:210,package_id:200,weight:60,rewards:[{asset_id:0,count:3}]},
     {id:211,package_id:200,weight:30,rewards:[{asset_id:100,count:1}]},
     {id:212,package_id:200,weight:10,rewards:[{asset_id:0,count:5},{asset_id:100,count:1}]}
@@ -41,7 +41,7 @@ test('invalid aggregates, references, reward duplicates, and integer bounds are 
     w=>w.tables.drop_entry.rows[0].rewards=[],
     w=>w.tables.drop_entry.rows[0].rewards.push({asset_id:0,count:1}),
     w=>w.tables.drop_entry.rows[0].rewards[0].asset_id=90,
-    w=>w.tables.drop_entry.rows[0].rewards[0].asset_id=200,
+    w=>w.tables.drop_entry.rows[0].rewards[0].asset_id=210,
     w=>w.tables.drop_entry.rows[0].package_id=201,
     w=>w.tables.drop_entry.rows[0].weight=0,
     w=>w.tables.drop_entry.rows[0].weight=4294967296,
@@ -68,7 +68,7 @@ test('one weighted selection returns the whole reward combination with exact wid
 });
 test('aggregate replacement and deletion do not mutate the original or leave entries',()=>{
   const w=populated(),before=JSON.stringify(w);
-  const next=normalizeWorkspace(drops.saveDropPackage(w,{id:200,name:'新版'},w.tables.drop_entry.rows.slice(0,1)));
+  const next=normalizeWorkspace(drops.saveDropPackage(w,{id:200,chest_appearance_id:1,name:'新版'},w.tables.drop_entry.rows.slice(0,1)));
   assert.equal(next.tables.drop_entry.rows.length,1);assert.equal(JSON.stringify(w),before);
   const deleted=normalizeWorkspace(drops.deleteDropPackage(w,200));
   assert.equal(deleted.tables.drop_package.rows.length,0);assert.equal(deleted.tables.drop_entry.rows.length,0);
@@ -80,7 +80,7 @@ test('custom fields, their order, uint64 and optional structured lists survive a
   const w=populated();
   w.tables.drop_entry.fields.push({key:'enabled',label:'启用',type:'bool',required:false},{key:'amount',label:'精确数值',type:'uint64',required:false},{key:'null',label:'额外奖励',type:'asset_list',required:false});
   for(const row of w.tables.drop_entry.rows){row.enabled=false;row.amount='18446744073709551615';row.null=[{asset_id:1,count:1}];}
-  const saved=normalizeWorkspace(drops.saveDropPackage(normalizeWorkspace(w),{id:200,name:'自定义包'},w.tables.drop_entry.rows));
+  const saved=normalizeWorkspace(drops.saveDropPackage(normalizeWorkspace(w),{id:200,chest_appearance_id:1,name:'自定义包'},w.tables.drop_entry.rows));
   assert.equal(saved.tables.drop_entry.rows[0].amount,'18446744073709551615');assert.equal(saved.tables.drop_entry.rows[0].enabled,false);
   const yaml=workspaceFiles(saved,'asset-categories.yaml').find(file=>file.name==='drop_entry.yaml').content;
   assert.deepEqual(parse(yaml).rows[0].null,[{asset_id:1,count:1,probability:10000}]);

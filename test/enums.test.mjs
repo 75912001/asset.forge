@@ -79,7 +79,7 @@ test('unreferenced enums can be deleted and an explicit empty library remains em
 
 test('YAML exports references and numeric values with the independent enum file',()=>{
   const files=workspace.workspaceFiles(data(),'asset-categories.yaml');
-  assert.deepEqual(files.map(file=>file.name),['asset-categories.yaml','asset-enums.yaml','item.yaml']);
+  assert.deepEqual(files.map(file=>file.name),['asset-categories.yaml','asset-enums.yaml','chest-appearances.yaml','item.yaml']);
   assert.match(files[1].content,/key: "equipment_slot"\n/);
   assert.match(files[1].content,/key: "undefined"\n\s+label: "未定义"\n\s+value: 0\n/);
   const yaml=assetTableYaml(category,table(),[slot()]);

@@ -8,13 +8,13 @@ const ui=await import('../public/editor/drop-editor.mjs').catch(()=>({}));
 test('drop custom PNG references persist in the same package save',async t=>{
   const elements=new Map(),previousDocument=globalThis.document;t.after(()=>globalThis.document=previousDocument);
   globalThis.document={getElementById(id){if(!elements.has(id))elements.set(id,{value:'',listeners:{},addEventListener(type,fn){this.listeners[type]=fn;}});return elements.get(id);}};
-  let workspace=normalizeWorkspace(enableDrops({categories:[{key:'item',name:'道具',start:1,end:99}],enums:[],tables:{item:{...emptyAssetTable(),rows:[{id:1}]}}},{start:200,end:209},{start:210,end:219}));
+  let workspace=normalizeWorkspace(enableDrops({chestAppearances:[{id:1,name:'木箱',icon:'icons/chests/wood.png'}],categories:[{key:'item',name:'道具',start:1,end:99}],enums:[],tables:{item:{...emptyAssetTable(),rows:[{id:1}]}}},{start:200,end:209},{start:210,end:219}));
   workspace.tables.drop_package.fields.push({key:'icon',label:'图标',type:'png',required:false});
   const path='images/'+'d'.repeat(64)+'.png';
   const editor=ui.mountDropEditor({getWorkspace:()=>workspace,onDirty(){},notify(){},canEdit:()=>true,onSelectPng:async()=>path,commit:async next=>{workspace=next;return true;}});
   const click=data=>elements.get('drops-view').listeners.click({target:{closest:()=>({dataset:data})}});
   const input=(dataset,value)=>elements.get('drops-view').listeners.input({target:{dataset,value}});
-  await click({dropAction:'new'});input({dropPackField:'name'},'图标包');await click({dropAction:'add-entry'});input({dropEntry:'0',rewardIndex:'0',rewardProperty:'asset_id'},'1');
+  await click({dropAction:'new'});input({dropPackField:'chest_appearance_id'},'1');input({dropPackField:'name'},'图标包');await click({dropAction:'add-entry'});input({dropEntry:'0',rewardIndex:'0',rewardProperty:'asset_id'},'1');
   await click({pngSelect:'',dropPackField:'icon'});
   assert.equal(editor.snapshot().pack.icon,path);await click({dropAction:'save'});
   assert.equal(workspace.tables.drop_package.rows[0].icon,path);
@@ -26,22 +26,24 @@ test('drop editor saves the full aggregate once and retains a failed save as a r
   t.after(()=>{globalThis.document=previousDocument;globalThis.confirm=previousConfirm;});
   globalThis.document={getElementById(id){if(!elements.has(id))elements.set(id,{value:'',hidden:false,textContent:'',innerHTML:'',listeners:{},addEventListener(type,fn){this.listeners[type]=fn;}});return elements.get(id);}};
   globalThis.confirm=()=>true;
-  let workspace=normalizeWorkspace(enableDrops({categories:[{key:'item',name:'道具',start:1,end:99}],enums:[],tables:{item:{...emptyAssetTable(),rows:[{id:1}]}}},{start:200,end:209},{start:210,end:219}));
+  let workspace=normalizeWorkspace(enableDrops({chestAppearances:[{id:1,name:'木箱',icon:'icons/chests/wood.png'}],categories:[{key:'item',name:'道具',start:1,end:99}],enums:[],tables:{item:{...emptyAssetTable(),rows:[{id:1},{id:2}]}}},{start:200,end:209},{start:210,end:219}));
   let calls=0,fail=true;
   const editor=ui.mountDropEditor({getWorkspace:()=>workspace,onDirty(){},notify(){},canEdit:()=>true,commit:async next=>{calls++;if(fail)return false;workspace=normalizeWorkspace(next);return true;}});
   const click=async data=>elements.get('drops-view').listeners.click({target:{closest:()=>({dataset:data})}});
   const input=(data,value)=>elements.get('drops-view').listeners.input({target:{dataset:data,value}});
-  await click({dropAction:'new'});input({dropPackField:'name'},'组合包');await click({dropAction:'add-entry'});
+  await click({dropAction:'new'});input({dropPackField:'chest_appearance_id'},'1');input({dropPackField:'name'},'组合包');await click({dropAction:'add-entry'});
   assert.deepEqual(editor.snapshot().entries[0].rewards,[{asset_id:'',count:1,probability:10000}],'adding a combination must immediately show an editable reward probability');
   assert.match(elements.get('drop-entries').innerHTML,/data-reward-property="probability"/);
   input({dropEntry:'0',dropField:'weight'},'10');
   input({dropEntry:'0',rewardIndex:'0',rewardProperty:'asset_id'},'1');input({dropEntry:'0',rewardIndex:'0',rewardProperty:'count'},'3');
+  // 独立概率奖励仍参与草稿恢复, 另加一项必中奖励满足组合非空约束.
+  await click({dropEntry:'0',rewardAdd:''});input({dropEntry:'0',rewardIndex:'1',rewardProperty:'asset_id'},'2');
   input({dropEntry:'0',rewardIndex:'0',rewardProperty:'probability'},'10001');await click({dropAction:'save'});assert.equal(calls,0,'invalid probabilities must not reach cloud save');
   input({dropEntry:'0',rewardIndex:'0',rewardProperty:'probability'},'5000');
   await click({dropAction:'save'});assert.equal(calls,1);assert.equal(workspace.tables.drop_package.rows.length,0);assert.equal(editor.hasUnsaved(),true);
   const backup=editor.snapshot();assert.equal(backup.entries[0].rewards[0].probability,'5000');editor.reset();editor.restore(backup);assert.equal(editor.hasUnsaved(),true);
   fail=false;await click({dropAction:'save'});assert.equal(calls,2);assert.equal(editor.hasUnsaved(),false);
-  assert.equal(workspace.tables.drop_package.rows[0].name,'组合包');assert.deepEqual(workspace.tables.drop_entry.rows[0].rewards,[{asset_id:1,count:3,probability:5000}]);
+  assert.equal(workspace.tables.drop_package.rows[0].name,'组合包');assert.deepEqual(workspace.tables.drop_entry.rows[0].rewards,[{asset_id:1,count:3,probability:5000},{asset_id:2,count:1,probability:10000}]);
   await click({dropAction:'delete'});assert.equal(calls,3);assert.equal(workspace.tables.drop_package.rows.length,0);assert.equal(workspace.tables.drop_entry.rows.length,0);
 });
 
