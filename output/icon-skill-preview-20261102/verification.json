@@ -1,0 +1,53 @@
+[
+  {
+    "file": "fireball.png",
+    "format": "PNG",
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA",
+    "transparent_pixels": 10518,
+    "outer_4px_max_alpha": 0,
+    "visible_bounds": [
+      25,
+      20,
+      109,
+      113
+    ]
+  },
+  {
+    "file": "health-potion.png",
+    "format": "PNG",
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA",
+    "transparent_pixels": 10612,
+    "outer_4px_max_alpha": 0,
+    "visible_bounds": [
+      26,
+      16,
+      102,
+      114
+    ]
+  },
+  {
+    "file": "gold-coin.png",
+    "format": "PNG",
+    "size": [
+      128,
+      128
+    ],
+    "mode": "RGBA",
+    "transparent_pixels": 9282,
+    "outer_4px_max_alpha": 0,
+    "visible_bounds": [
+      18,
+      19,
+      110,
+      110
+    ]
+  }
+]

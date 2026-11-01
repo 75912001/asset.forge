@@ -43,6 +43,15 @@
 
 clone 仓库后, 安装 Node.js 22.13+, 双击 start.cmd 即可. 提交最新项目时应包含各 projects/<项目标识>/ 文件夹中的数据库、project.json、assets/ 和 cfg/. 新建项目自带空目录占位文件, 便于 Git 保留目录结构. 固定目录不保存本机绝对路径, 更换盘符或文件夹无需修改配置.
 
+首次换机可按以下步骤操作:
+
+1. 安装 Git 和 Node.js 22.13+.
+2. 执行 `git clone https://github.com/75912001/asset.forge.git`, 然后进入下载的项目目录. 已有副本时先保存修改并停止服务, 再执行 `git pull --ff-only`.
+3. Windows 双击 `start.cmd`. macOS 或 Linux 在项目目录执行 `npm start`, 用浏览器打开终端显示的本机地址, 使用完按 Ctrl+C 停止.
+4. 在侧栏选择已有项目, 核对资产数据和图片. 本地编辑器启动只需要 Node.js 内置模块, 不需要先执行 `npm install` 或复制旧电脑的 node_modules.
+
+共享 AI 技能及原始风格参考保存在 `.agents/skills/`. 图标试作及提示词保存在 `output/icon-skill-preview-20261102/`, 提示词中的参考图路径相对于仓库根目录解析. 这些文件随仓库迁移; 实际继续出图仍需要所用 AI 工具支持图像生成.
+
 未保存的页面草稿不在数据库中. 提交最新数据前先保存页面, 再运行 stop.cmd 停止服务, 确保 SQLite 日志已合并后再提交. 日志、进程号和 SQLite 临时文件不纳入 Git.
 
 ## 数据和备份
@@ -87,6 +96,7 @@ mmorpg 的五种初始外观为木箱、铁箱、铜箱、银箱、金箱, ID �
 
 ## 开发验证
 
+- 首次开发验证先执行 `npm ci --include=dev --include=optional`, 按 package-lock.json 安装锁定依赖. 仅运行本地编辑器时无需执行.
 - npm test
 - node node_modules/typescript/bin/tsc --noEmit
 

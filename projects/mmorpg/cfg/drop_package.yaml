@@ -1,0 +1,28 @@
+version: 1
+category: "drop_package"
+fields:
+  - key: "id"
+    label: "ID"
+    type: "uint32"
+    required: true
+  - key: "name"
+    label: "包名称"
+    type: "string"
+    required: true
+  - key: "selection_mode"
+    label: "组合抽取模式"
+    type: "string"
+    required: true
+  - key: "chest_appearance_id"
+    label: "宝箱外观"
+    type: "uint32"
+    required: true
+rows:
+  - id: 2000002
+    name: "概率包"
+    selection_mode: "probability"
+    chest_appearance_id: 1
+  - id: 2000001
+    name: "权重包"
+    selection_mode: "weight"
+    chest_appearance_id: 1

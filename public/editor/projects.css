@@ -1,0 +1,14 @@
+.project-controls{border:1px solid #ffffff20;border-radius:8px;margin:28px 0;padding:12px;min-width:0}
+.project-controls label{display:block;font-size:11px;color:#a4b9aa;margin-bottom:8px}
+.project-controls select{width:100%;min-width:0;padding:9px 6px;border:1px solid #627d6e;border-radius:5px;background:#243f33;color:#edf5ee;font:inherit}
+.project-controls small{display:block;font:10px var(--mono);color:#9ab0a1;margin-top:8px;overflow-wrap:anywhere}
+.project-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px}
+.project-actions button{border:0;background:none;color:#b9d0c0;font-size:11px;padding:4px 0}
+.project-actions button:hover{color:#fff}
+.project-dialog{width:min(440px,92vw);padding:26px;border:1px solid #cddbc9;border-radius:10px;color:var(--ink);box-shadow:0 20px 80px #193a2940}
+.project-dialog::backdrop{background:#16382b60}
+.project-dialog h2{font-size:20px;margin:0 0 24px}
+.project-dialog label{display:block;font-size:12px;margin-bottom:18px}
+.project-dialog input[readonly]{background:#f0f3ec;color:#84908a}
+.project-dialog-actions{display:flex;justify-content:flex-end;gap:10px}
+@media(max-width:700px){.sidebar .project-controls{display:block;width:100%;margin:0}.project-controls select{max-width:100%}.project-actions{margin-top:8px}.sidebar .project-controls small{display:inline-block}}

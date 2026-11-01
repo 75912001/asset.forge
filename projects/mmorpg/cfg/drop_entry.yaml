@@ -1,0 +1,74 @@
+version: 1
+category: "drop_entry"
+fields:
+  - key: "id"
+    label: "ID"
+    type: "uint32"
+    required: true
+  - key: "package_id"
+    label: "所属包"
+    type: "uint32"
+    required: true
+  - key: "weight"
+    label: "权重"
+    type: "uint32"
+    required: true
+  - key: "rewards"
+    label: "奖励组合"
+    type: "asset_list"
+    required: true
+  - key: "probability"
+    label: "组合概率(万分率)"
+    type: "uint32"
+    required: true
+rows:
+  - id: 3000002
+    package_id: 2000002
+    weight: 1
+    rewards:
+      - asset_id: 1
+        count: 1
+        probability: 10000
+      - asset_id: 2
+        count: 1
+        probability: 10000
+      - asset_id: 3
+        count: 1
+        probability: 10000
+    probability: 10000
+  - id: 3000003
+    package_id: 2000002
+    weight: 1
+    rewards:
+      - asset_id: 1
+        count: 1
+        probability: 10000
+      - asset_id: 2
+        count: 1
+        probability: 10000
+      - asset_id: 1000000
+        count: 1
+        probability: 10000
+    probability: 10000
+  - id: 3000001
+    package_id: 2000001
+    weight: 1
+    rewards:
+      - asset_id: 1
+        count: 1
+        probability: 10000
+      - asset_id: 2
+        count: 1
+        probability: 1000
+    probability: 10000
+  - id: 3000000
+    package_id: 2000001
+    weight: 1
+    rewards:
+      - asset_id: 1
+        count: 1
+        probability: 10000
+      - asset_id: 1000000
+        count: 1
+        probability: 10000
+    probability: 10000
