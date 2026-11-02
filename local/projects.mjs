@@ -44,13 +44,13 @@ function databaseContents(sqlite) {
   const metadata=sqlite.prepare('SELECT * FROM workspaces WHERE owner_id=?').get(LOCAL_OWNER);
   if(!metadata||!Number.isSafeInteger(metadata.revision)||metadata.revision<1)throw fail('旧数据库缺少有效的本地工作区');
   const records=sqlite.prepare('SELECT kind,entry_key,position,payload FROM workspace_records WHERE owner_id=? ORDER BY kind,entry_key').all(LOCAL_OWNER);
-  const workspace={categories:[],tables:{},enums:[],chestAppearances:[]},rows=[];
+  const workspace={categories:[],tables:{},enums:[]},rows=[];
   for(const record of [...records].sort((a,b)=>a.position-b.position)) {
     const value=JSON.parse(record.payload);
     if(record.kind==='category')workspace.categories.push(value);
     else if(record.kind==='table')workspace.tables[record.entry_key]={fields:value,rows:[]};
     else if(record.kind==='enum')workspace.enums.push(value);
-    else if(record.kind==='chest_appearance')workspace.chestAppearances.push(value);
+    else if(record.kind==='chest_appearance')throw new Error('旧宝箱外观配置需要停服后执行 node scripts/migrate-chest-types.mjs <项目标识>');
     else if(record.kind==='row')rows.push([record.entry_key.split(':')[0],value]);
     else throw fail('旧数据库包含未知记录类型');
   }

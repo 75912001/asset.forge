@@ -63,3 +63,4 @@ yarn-error.log*
 /projects/*/*.sqlite-journal
 # 迁移前快照仅保存在本机, 当前项目数据库仍纳入版本管理.
 /projects/*/backups/before-chest-appearances-*.sqlite
+/projects/*/backups/before-chest-types-*/

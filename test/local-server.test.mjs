@@ -7,7 +7,7 @@ import {DatabaseSync} from 'node:sqlite';
 import {createLocalServer} from '../local/server.mjs';
 import {openStore,LOCAL_OWNER} from '../local/store.mjs';
 
-const seed={revision:13,updatedAt:'2026-10-29T06:00:00.000Z',workspace:{chestAppearances:[],categories:[{key:'equipment',name:'装备',start:1,end:9}],enums:[],tables:{equipment:{fields:[{key:'id',label:'ID',type:'uint32',required:true},{key:'name',label:'名称',type:'string',required:true},{key:'icon',label:'图标',type:'png',required:false}],rows:[{id:1,name:'草帽',icon:null}]}}}};
+const seed={revision:13,updatedAt:'2026-10-29T06:00:00.000Z',workspace:{categories:[{key:'equipment',name:'装备',start:1,end:9}],enums:[],tables:{equipment:{fields:[{key:'id',label:'ID',type:'uint32',required:true},{key:'name',label:'名称',type:'string',required:true},{key:'icon',label:'图标',type:'png',required:false}],rows:[{id:1,name:'草帽',icon:null}]}}}};
 const bytes=Uint8Array.from([137,80,78,71,13,10,26,10]);
 async function fixture(t,{legacy=true}={}) {
   const root=await mkdtemp(join(tmpdir(),'asset-forge-projects-'));
@@ -50,7 +50,7 @@ test('migration preserves the old workspace and files, is idempotent, and keeps 
 test('independent projects isolate the same category, ID, PNG filename, enums, drops, save revisions and exports',async t=>{
   const f=await fixture(t),app=await f.start();
   assert.equal((await json(app.url+'/api/projects','POST',{id:'sa',name:'石器时代'})).status,201);
-  const empty=await workspace(app,'sa');assert.deepEqual(empty.workspace,{categories:[],enums:[],tables:{},chestAppearances:[]});assert.equal(empty.revision,1);
+  const empty=await workspace(app,'sa');assert.deepEqual(empty.workspace,{categories:[],enums:[],tables:{}});assert.equal(empty.revision,1);
   await mkdir(join(f.root,'projects','sa','assets','装备'));
   const other=Uint8Array.from([...bytes,99]);await writeFile(join(f.root,'projects','sa','assets','装备','草帽.png'),other);
   const original=await workspace(app),sa=structuredClone(seed.workspace);sa.tables.equipment.rows[0]={id:1,name:'SA 帽子',icon:'装备/草帽.png'};
@@ -69,7 +69,7 @@ test('independent projects isolate the same category, ID, PNG filename, enums, d
   assert.equal((await json(api(app,'sa','/export'),'POST',{scope:'equipment',filename:'../escape.yaml',expectedRevision:2})).status,400);
   assert.equal((await json(api(app,'sa','/export'),'POST',{scope:'equipment',filename:'asset-categories.yaml',expectedRevision:1})).status,409);
   const {enableDrops}=await import('../public/editor/drops.mjs'),withDrops=enableDrops(sa,{start:100,end:109},{start:110,end:119});
-  withDrops.enums=[{key:'quality',label:'SA 品质',items:[{key:'undefined',label:'未定义',value:0}]}];
+  withDrops.enums.push({key:'quality',label:'SA 品质',items:[{key:'undefined',label:'未定义',value:0}]});
   assert.equal((await json(api(app,'sa'),'PUT',{workspace:withDrops,expectedRevision:2})).status,200);
   const untouched=await workspace(app);assert.deepEqual(untouched.workspace.enums,[]);assert.equal(untouched.workspace.categories.length,1);
   assert.equal((await json(api(app,'sa'),'PUT',{workspace:sa,expectedRevision:2})).status,409);

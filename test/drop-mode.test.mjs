@@ -1,3 +1,4 @@
+import {chestEnum} from './chest-fixture.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {load as parse} from 'js-yaml';
@@ -7,8 +8,8 @@ import * as drops from '../public/editor/drops.mjs';
 import {rollRewards} from '../public/editor/rewards.mjs';
 import {mountDropEditor} from '../public/editor/drop-editor.mjs';
 function fixture() {
-  const w=normalizeWorkspace(drops.enableDrops({chestAppearances:[{id:1,name:'木箱',icon:'icons/chests/wood.png'}],categories:[{key:'item',name:'道具',start:1,end:99}],enums:[],tables:{item:{...emptyAssetTable(),rows:[{id:1},{id:2}]}}},{start:200,end:209},{start:210,end:299}));
-  return normalizeWorkspace(drops.saveDropPackage(w,{id:200,chest_appearance_id:1,name:'模式测试',selection_mode:'weight'},[
+  const w=normalizeWorkspace(drops.enableDrops({categories:[{key:'item',name:'道具',start:1,end:99}],enums:[chestEnum('icons/chests/wood.png')],tables:{item:{...emptyAssetTable(),rows:[{id:1},{id:2}]}}},{start:200,end:209},{start:210,end:299}));
+  return normalizeWorkspace(drops.saveDropPackage(w,{id:200,chest_type:1,name:'模式测试',selection_mode:'weight'},[
     {id:210,package_id:200,weight:60,probability:10000,rewards:[{asset_id:1,count:1,probability:10000}]},
     {id:211,package_id:200,weight:30,probability:5000,rewards:[{asset_id:2,count:1,probability:0},{asset_id:1,count:1,probability:10000}]},
     {id:212,package_id:200,weight:10,probability:0,rewards:[{asset_id:1,count:3,probability:10000}]}

@@ -23,7 +23,6 @@ export function openStore(filename,root,seed,{initialize=true}={}) {
     const add=(kind,key,position,value)=>records.push([LOCAL_OWNER,kind,key,position,JSON.stringify(value)]);
     workspace.categories.forEach((cat,index)=>{add('category',cat.key,index,cat);add('table',cat.key,index,workspace.tables[cat.key].fields);workspace.tables[cat.key].rows.forEach((row,position)=>add('row',`${cat.key}:${row.id}`,position,row));});
     workspace.enums.forEach((entry,index)=>add('enum',entry.key,index,entry));
-    workspace.chestAppearances.forEach((entry,index)=>add('chest_appearance',String(entry.id),index,entry));
     sqlite.exec('BEGIN');
     try{sqlite.prepare('INSERT INTO workspaces(owner_id,revision,updated_at) VALUES(?,?,?)').run(LOCAL_OWNER,Math.max(1,seed?.revision||1),seed?.updatedAt||new Date().toISOString());const insert=sqlite.prepare('INSERT INTO workspace_records(owner_id,kind,entry_key,position,payload) VALUES(?,?,?,?,?)');for(const values of records)insert.run(...values);sqlite.exec('COMMIT');}
     catch(error){sqlite.exec('ROLLBACK');throw error;}

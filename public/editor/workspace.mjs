@@ -2,17 +2,16 @@ import {validateCategories,toYaml} from './model.mjs';
 import {emptyAssetTable,normalizeAssetTable,assetTableYaml} from './assets.mjs';
 import {normalizeEnums,seedEnums,enumsYaml} from './enums.mjs';
 import {validateDrops,assertDropTransition} from './drops.mjs';
-import {normalizeChestAppearances,chestAppearancesYaml} from './chest-appearances.mjs';
 const workspaceKey='asset-forge-workspace-v2';
 export function normalizeWorkspace(workspace) {
+  if(workspace.chestAppearances?.length||workspace.tables?.drop_package?.fields?.some(field=>field.key==='chest_appearance_id'))throw new Error('旧宝箱外观配置需要停服后执行 migrate-chest-types.mjs 迁移, 不会自动转换');
   if (!Array.isArray(workspace.categories)) throw new Error('分类数据格式无效');
   const errors=validateCategories(workspace.categories);
   if(errors.length) throw new Error(errors.join('\n'));
   const categories=workspace.categories.map(category=>({...category,start:Number(category.start),end:Number(category.end)}));
   const enums=normalizeEnums(workspace.enums===undefined?seedEnums():workspace.enums);
   const tables=Object.fromEntries(categories.map(category=>[category.key,normalizeAssetTable(category,Object.hasOwn(workspace.tables||{},category.key)?workspace.tables[category.key]:emptyAssetTable(),enums)]));
-  const chestAppearances=normalizeChestAppearances(workspace.chestAppearances);
-  const saved={categories,tables,enums,chestAppearances};validateDrops(saved);return saved;
+  const saved={categories,tables,enums};validateDrops(saved);return saved;
 }
 export function readWorkspace(storage,fallbackCategories) {
   const saved=storage.getItem(workspaceKey);
@@ -36,6 +35,7 @@ export function replaceCategories(workspace,categories,rename) {
 export function replaceEnum(workspace,previousKey,definition) {
   const saved=normalizeWorkspace(workspace);
   const previous=saved.enums.find(entry=>entry.key===previousKey);
+  if(previousKey==='chest_type'&&saved.categories.some(category=>category.system==='drop_package')&&definition?.key!=='chest_type')throw new Error('已启用掉落包, chest_type 宝箱类型枚举不能删除或修改标识');
   if(previousKey&&!previous)throw new Error('枚举不存在');
   const enums=normalizeEnums([...saved.enums.filter(entry=>entry.key!==previousKey),...(definition?[definition]:[])]);
   if(previous) {
@@ -57,6 +57,6 @@ export function replaceEnum(workspace,previousKey,definition) {
 export function workspaceFiles(workspace,categoryFilename) {
   const saved=normalizeWorkspace(workspace);
   const names=saved.categories.map(category=>`${category.key}.yaml`);
-  if([...names,'asset-enums.yaml','chest-appearances.yaml'].includes(categoryFilename.toLowerCase())) throw new Error('分类配置文件名与资产表或枚举配置文件名冲突, 请修改分类配置文件名');
-  return [{name:categoryFilename,content:toYaml(saved.categories)},{name:'asset-enums.yaml',content:enumsYaml(saved.enums)},{name:'chest-appearances.yaml',content:chestAppearancesYaml(saved.chestAppearances)},...saved.categories.map(category=>({name:`${category.key}.yaml`,content:assetTableYaml(category,saved.tables[category.key],saved.enums)}))];
+  if([...names,'asset-enums.yaml'].includes(categoryFilename.toLowerCase())) throw new Error('分类配置文件名与资产表或枚举配置文件名冲突, 请修改分类配置文件名');
+  return [{name:categoryFilename,content:toYaml(saved.categories)},{name:'asset-enums.yaml',content:enumsYaml(saved.enums)},...saved.categories.map(category=>({name:`${category.key}.yaml`,content:assetTableYaml(category,saved.tables[category.key],saved.enums)}))];
 }

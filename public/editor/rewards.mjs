@@ -34,10 +34,10 @@ export function updateRewardProbability(input) {
   if(preview)preview.textContent=rewardProbabilityText(input.value);
 }
 export function rewardAssets(workspace) {
-  const appearances=new Map((workspace.chestAppearances||[]).map(appearance=>[appearance.id,appearance]));
+  const chestTypes=new Map((workspace.enums?.find(definition=>definition.key==='chest_type')?.items||[]).map(item=>[item.value,item]));
   return workspace.categories.filter(category=>!category.system||category.system==='drop_package').flatMap(category=>{
     const table=workspace.tables[category.key],hasIcon=table.fields.some(field=>field.key==='icon'&&field.type==='png');
-    return table.rows.map(row=>({id:row.id,name:String(row.name||row.title||row.id),category:category.name,icon:category.system==='drop_package'?appearances.get(row.chest_appearance_id)?.icon||null:hasIcon?row.icon||null:null,label:`${category.name} / ${row.name||row.title||row.id} · ${row.id}`}));
+    return table.rows.map(row=>({id:row.id,name:String(row.name||row.title||row.id),category:category.name,icon:category.system==='drop_package'?chestTypes.get(row.chest_type)?.icon||null:hasIcon?row.icon||null:null,label:`${category.name} / ${row.name||row.title||row.id} · ${row.id}`}));
   });
 }
 const esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
