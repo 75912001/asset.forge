@@ -1,0 +1,249 @@
+version: 1
+category: "td_spawns"
+fields:
+  - key: "id"
+    label: "ID"
+    type: "uint32"
+    required: true
+  - key: "level_id"
+    label: "关卡 ID"
+    type: "uint32"
+    required: true
+  - key: "time_ms"
+    label: "首名出兵时间(毫秒)"
+    type: "uint32"
+    required: true
+  - key: "lane"
+    label: "路线(0上 - 4下)"
+    type: "uint32"
+    required: true
+  - key: "enemy_id"
+    label: "敌人 ID"
+    type: "uint32"
+    required: true
+  - key: "count"
+    label: "数量"
+    type: "uint32"
+    required: true
+  - key: "spacing_ms"
+    label: "同批出兵间隔(毫秒)"
+    type: "uint32"
+    required: true
+rows:
+  - id: 4001
+    level_id: 3001
+    time_ms: 8000
+    lane: 2
+    enemy_id: 2001
+    count: 1
+    spacing_ms: 0
+  - id: 4002
+    level_id: 3001
+    time_ms: 28000
+    lane: 1
+    enemy_id: 2001
+    count: 1
+    spacing_ms: 0
+  - id: 4003
+    level_id: 3001
+    time_ms: 40000
+    lane: 3
+    enemy_id: 2001
+    count: 1
+    spacing_ms: 0
+  - id: 4004
+    level_id: 3001
+    time_ms: 56000
+    lane: 0
+    enemy_id: 2001
+    count: 1
+    spacing_ms: 0
+  - id: 4005
+    level_id: 3001
+    time_ms: 68000
+    lane: 4
+    enemy_id: 2001
+    count: 1
+    spacing_ms: 0
+  - id: 4006
+    level_id: 3001
+    time_ms: 85000
+    lane: 1
+    enemy_id: 2001
+    count: 2
+    spacing_ms: 3000
+  - id: 4007
+    level_id: 3001
+    time_ms: 100000
+    lane: 3
+    enemy_id: 2001
+    count: 2
+    spacing_ms: 3000
+  - id: 4008
+    level_id: 3001
+    time_ms: 112000
+    lane: 2
+    enemy_id: 2001
+    count: 3
+    spacing_ms: 2000
+  - id: 4009
+    level_id: 3002
+    time_ms: 12000
+    lane: 2
+    enemy_id: 2002
+    count: 2
+    spacing_ms: 5000
+  - id: 4010
+    level_id: 3002
+    time_ms: 30000
+    lane: 1
+    enemy_id: 2001
+    count: 5
+    spacing_ms: 1000
+  - id: 4011
+    level_id: 3002
+    time_ms: 42000
+    lane: 3
+    enemy_id: 2002
+    count: 3
+    spacing_ms: 5000
+  - id: 4012
+    level_id: 3002
+    time_ms: 60000
+    lane: 0
+    enemy_id: 2001
+    count: 5
+    spacing_ms: 1000
+  - id: 4013
+    level_id: 3002
+    time_ms: 70000
+    lane: 4
+    enemy_id: 2002
+    count: 3
+    spacing_ms: 5000
+  - id: 4014
+    level_id: 3002
+    time_ms: 95000
+    lane: 1
+    enemy_id: 2001
+    count: 8
+    spacing_ms: 1000
+  - id: 4015
+    level_id: 3002
+    time_ms: 115000
+    lane: 3
+    enemy_id: 2001
+    count: 6
+    spacing_ms: 1000
+  - id: 4016
+    level_id: 3002
+    time_ms: 125000
+    lane: 0
+    enemy_id: 2002
+    count: 3
+    spacing_ms: 4000
+  - id: 4017
+    level_id: 3002
+    time_ms: 145000
+    lane: 2
+    enemy_id: 2001
+    count: 8
+    spacing_ms: 1000
+  - id: 4018
+    level_id: 3002
+    time_ms: 160000
+    lane: 4
+    enemy_id: 2001
+    count: 6
+    spacing_ms: 1000
+  - id: 4019
+    level_id: 3003
+    time_ms: 10000
+    lane: 2
+    enemy_id: 2003
+    count: 1
+    spacing_ms: 0
+  - id: 4020
+    level_id: 3003
+    time_ms: 24000
+    lane: 0
+    enemy_id: 2002
+    count: 3
+    spacing_ms: 4000
+  - id: 4021
+    level_id: 3003
+    time_ms: 36000
+    lane: 4
+    enemy_id: 2001
+    count: 5
+    spacing_ms: 1000
+  - id: 4022
+    level_id: 3003
+    time_ms: 52000
+    lane: 1
+    enemy_id: 2003
+    count: 1
+    spacing_ms: 0
+  - id: 4023
+    level_id: 3003
+    time_ms: 64000
+    lane: 3
+    enemy_id: 2002
+    count: 4
+    spacing_ms: 4000
+  - id: 4024
+    level_id: 3003
+    time_ms: 84000
+    lane: 4
+    enemy_id: 2003
+    count: 2
+    spacing_ms: 10000
+  - id: 4025
+    level_id: 3003
+    time_ms: 100000
+    lane: 0
+    enemy_id: 2001
+    count: 7
+    spacing_ms: 1000
+  - id: 4026
+    level_id: 3003
+    time_ms: 118000
+    lane: 2
+    enemy_id: 2003
+    count: 2
+    spacing_ms: 10000
+  - id: 4027
+    level_id: 3003
+    time_ms: 130000
+    lane: 1
+    enemy_id: 2002
+    count: 4
+    spacing_ms: 3000
+  - id: 4028
+    level_id: 3003
+    time_ms: 150000
+    lane: 3
+    enemy_id: 2003
+    count: 2
+    spacing_ms: 10000
+  - id: 4029
+    level_id: 3003
+    time_ms: 175000
+    lane: 0
+    enemy_id: 2001
+    count: 8
+    spacing_ms: 1000
+  - id: 4030
+    level_id: 3003
+    time_ms: 180000
+    lane: 4
+    enemy_id: 2002
+    count: 5
+    spacing_ms: 3000
+  - id: 4031
+    level_id: 3003
+    time_ms: 192000
+    lane: 2
+    enemy_id: 2003
+    count: 1
+    spacing_ms: 0

@@ -23,6 +23,8 @@ next-env.d.ts
 
 # Test output
 /coverage/
+/output/hero-td-web*/
+/output/hero-td-preview*.png
 
 # Package-manager logs
 npm-debug.log*

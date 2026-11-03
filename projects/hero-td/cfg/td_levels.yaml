@@ -1,0 +1,46 @@
+version: 1
+category: "td_levels"
+fields:
+  - key: "id"
+    label: "ID"
+    type: "uint32"
+    required: true
+  - key: "name"
+    label: "关卡名称"
+    type: "string"
+    required: true
+  - key: "description"
+    label: "关卡提示"
+    type: "string"
+    required: true
+  - key: "duration_ms"
+    label: "预计时长(毫秒)"
+    type: "uint32"
+    required: true
+  - key: "starting_energy"
+    label: "初始灵气"
+    type: "uint32"
+    required: true
+  - key: "energy_per_second"
+    label: "每秒自然恢复"
+    type: "uint32"
+    required: true
+rows:
+  - id: 3001
+    name: "守住城门"
+    description: "先立聚灵阵积蓄灵气, 再让黄忠守住各路. 张飞能为后排争取时间."
+    duration_ms: 120000
+    starting_energy: 250
+    energy_per_second: 5
+  - id: 3002
+    name: "急袭来敌"
+    description: "快兵会迅速迫近城门. 将关羽部署在前线, 用横扫化解成群步卒."
+    duration_ms: 180000
+    starting_energy: 300
+    energy_per_second: 5
+  - id: 3003
+    name: "重兵压境"
+    description: "重甲步卒生命很高. 用诸葛亮减缓推进, 配合张飞阻挡和多名英雄集火."
+    duration_ms: 210000
+    starting_energy: 350
+    energy_per_second: 5

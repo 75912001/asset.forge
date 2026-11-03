@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {normalizeWorkspace} from '../public/editor/workspace.mjs';
+import {upgradeHeroMotion} from '../public/editor/hero-runtime.mjs';
 const editorModule=await import('../public/editor/hero-editor.mjs').catch(()=>({}));
 const assets=await import('../public/editor/hero-assets.mjs').catch(()=>({}));
 
@@ -11,6 +12,26 @@ test('头像与武器验证实际像素, 拒绝无透明背景和全透明素材
   assert.throws(()=>assets.validateHeroPixels(pixels,128,128,128),/透明背景/);
   pixels.fill(0);assert.throws(()=>assets.validateHeroPixels(pixels,128,128,128),/可见/);
   pixels[3]=255;assert.doesNotThrow(()=>assets.validateHeroPixels(pixels,128,128,128));
+});
+
+test('v2面板保存战斗参数, 预览样式不改存档, 恢复默认仍保留v2',async t=>{
+  const previous={document:globalThis.document,requestAnimationFrame:globalThis.requestAnimationFrame,fetch:globalThis.fetch,confirm:globalThis.confirm};
+  t.after(()=>Object.assign(globalThis,previous));
+  const elements=new Map(),context={clearRect(){},save(){},restore(){},translate(){},scale(){},drawImage(){}};
+  const element=()=>({value:'',hidden:false,checked:false,listeners:{},classList:{toggle(){}},addEventListener(name,fn){this.listeners[name]=fn;},querySelectorAll(){return [];},getContext(){return context;},setAttribute(){}});
+  globalThis.document={hidden:false,getElementById(id){if(!elements.has(id))elements.set(id,element());return elements.get(id);},addEventListener(){}};
+  globalThis.requestAnimationFrame=()=>0;globalThis.confirm=()=>true;globalThis.fetch=async()=>Response.json({root:'assets',paths:[]});
+  let workspace=normalizeWorkspace({categories:[],tables:{},enums:[],heroMotion:upgradeHeroMotion()});
+  const editor=editorModule.mountHeroEditor({getWorkspace:()=>workspace,onDirty(){},notify(){},canEdit:()=>true,onSelectPng:async()=>null,commit:async next=>{workspace=next;return true;}});
+  const parameters=elements.get('hero-parameters');
+  assert.equal(typeof parameters.listeners.change,'function');
+  parameters.listeners.change({target:{dataset:{heroStyle:'true'},value:'slash'}});
+  assert.equal(editor.hasUnsaved(),false);
+  parameters.listeners.input({target:{dataset:{heroParam:'combat.hitStrength'},value:'1.5'}});
+  assert.equal(workspace.heroMotion.combat.hitStrength,1);assert.equal(editor.hasUnsaved(),true);
+  await elements.get('hero-save').listeners.click();assert.equal(workspace.heroMotion.combat.hitStrength,1.5);
+  elements.get('hero-defaults').listeners.click();assert.equal(editor.snapshot().draft.version,2);assert.equal(editor.snapshot().draft.combat.hitStrength,1);
+  await elements.get('hero-save').listeners.click();assert.equal(workspace.heroMotion.version,2);
 });
 
 test('调参草稿只在显式保存后更新工作区, 保存失败保留草稿, 可恢复与放弃',async t=>{

@@ -5,12 +5,16 @@
 <div class="eyebrow">SHARED HERO RUNTIME</div><h1>同一套动作, 直接用于网页.</h1><p>本页读取当前项目已保存的参数, 与调参面板共用动画和绘制模块. 保存新参数后刷新本页.</p><p id="example-status" class="example-status" role="status">正在读取配置和资源...</p>
 <div class="hero-stage-wrap example-stage"><canvas id="example-stage" width="512" height="512" aria-label="网页英雄动作"></canvas></div>
 <div id="example-controls" class="hero-actions example-controls"><button class="button secondary" data-action="idle">静止</button><button class="button secondary" data-action="walk-left">左走</button><button class="button secondary" data-action="walk-right">右走</button><button class="button secondary" data-action="attack">攻击</button><button class="button secondary" data-action="hit">受伤</button></div>
+<div id="example-combat" class="hero-toolbar example-controls" hidden><label>攻击样式<select id="example-style"><option value="thrust">突刺</option><option value="slash">横斩</option><option value="shoot">射击</option><option value="cast">施法</option><option value="strike">打击</option></select></label><label>受击类型<select id="example-impact"><option value="normal">普通</option><option value="critical">暴击重击</option></select></label><button class="button secondary" data-action="combo">攻击中受击</button><button class="button secondary" data-action="release">开火后坐</button></div>
 <div class="hero-toolbar example-controls"><button id="example-pause" class="button secondary">暂停</button><button id="example-reload" class="button secondary">重新读取已保存参数</button><button id="example-check" class="button secondary">检查同帧一致性</button></div><p id="example-check-result" class="example-status" role="status"></p>
 <h2>接入代码</h2><p>资源地址由网页提供. 从导出的 hero-motion.yaml 解析配置对象, 或由服务端提供相同对象. 场景移动在外层控制.</p>
 <pre>import {createHeroMotion, drawHero} from './hero-runtime.mjs';
 
 const motion = createHeroMotion(savedConfig);
-motion.setAction('attack');
+motion.setAction('attack', {style: 'thrust', interval: 1});
+// v2 在战斗模型确认释放时调用 release, 命中时调用 hit.
+// motion.setAction('release', {style: 'thrust'});
+// motion.setAction('hit', {direction: 1, critical: false});
 // 每帧传入秒数, 不使用固定帧数驱动.
 motion.advance(deltaSeconds);
 ctx.clearRect(0, 0, 256, 256);

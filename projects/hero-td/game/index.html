@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#183d36">
+  <title>群英守关</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="game-shell">
+    <header class="masthead">
+      <div class="brand"><span class="seal" aria-hidden="true">守</span><div><p class="eyebrow">群英列阵 · 护我山河</p><h1 id="game-title">群英守关</h1></div></div>
+      <div class="chapter-mark"><span>第一章</span><strong>三国英灵</strong><small>单机塔防 · 浏览器存档</small></div>
+    </header>
+
+    <p id="save-warning" class="notice warning" role="status" hidden></p>
+    <p id="audio-warning" class="notice warning" role="status" hidden></p>
+    <section id="load-error" class="notice error" role="alert" hidden><strong>未能进入战场</strong><p id="load-error-message"></p><button id="reload" class="button primary" type="button">重新读取</button></section>
+
+    <section class="command-bar" aria-label="战场状态">
+      <div class="mission"><span id="mission-number" class="mission-number">壹</span><div><p id="mission-label" class="eyebrow">选择关卡</p><h2 id="mission-title">城关待守, 英雄待命</h2></div></div>
+      <div class="stat energy-stat"><span class="stat-icon" aria-hidden="true">✧</span><div><span>灵气</span><strong id="energy-value">—</strong></div></div>
+      <div class="stat"><span class="stat-icon gate-icon" aria-hidden="true">城</span><div><span>城门耐久</span><strong><span id="gate-value">3</span> <small>/ 3</small></strong></div></div>
+      <div class="assault"><div><span>敌军进度</span><strong id="wave-value">准备出征</strong></div><progress id="wave-progress" max="1" value="0" aria-label="敌军出场进度"></progress><small id="battle-time">00:00</small></div>
+    </section>
+
+    <div class="battle-layout">
+      <aside class="roster" aria-label="英灵部署">
+        <div class="section-label"><h2>召唤英灵</h2><span>选牌 · 落子</span></div>
+        <div id="unit-cards" class="unit-cards"><p class="loading-copy">正在读取英灵与战场...</p></div>
+        <button id="remove-mode" class="remove-button" type="button" aria-pressed="false" disabled><span aria-hidden="true">⌫</span> 撤除单位 <small>不返还灵气</small></button>
+      </aside>
+
+      <section class="battle-stage" aria-label="五路八列战场">
+        <div class="stage-topline"><span id="battle-instruction">守住五条道路, 阻止敌军突破城门.</span><span class="march-label">敌军来向 <span aria-hidden="true">←</span></span></div>
+        <div id="canvas-wrap" class="canvas-wrap">
+          <canvas id="battlefield" width="1024" height="620" tabindex="0" aria-label="战场, 选择英灵后点击空格部署. 键盘方向键移动格子, 回车部署."></canvas>
+          <div id="stage-cover" class="stage-cover"><div class="cover-emblem" aria-hidden="true">令</div><h2 id="cover-title">一夫当关, 群英来援</h2><p id="cover-copy">布下灵阵, 召唤英灵, 守住你的城关.</p><button id="cover-action" class="button primary" type="button" disabled>正在整备...</button></div>
+          <div id="toast" class="battle-toast" role="status" aria-live="polite" hidden></div>
+        </div>
+        <footer class="stage-footer"><p id="selection-description">点击一张英灵牌, 查看能力与部署费用.</p><div class="battle-controls"><button id="audio-toggle" class="button subtle" type="button" aria-pressed="true" disabled>音效: 开</button><button id="pause" class="button subtle" type="button" disabled>暂停</button><button id="restart" class="button subtle" type="button" disabled>重开本关</button><button id="choose-level" class="button secondary" type="button" disabled>关卡</button></div></footer>
+      </section>
+    </div>
+    <footer class="page-footer"><p>以阵御敌, 以谋守关.</p><span>数字键 1-5 选牌 · D 撤除 · 空格暂停 · Esc 取消选择</span></footer>
+  </main>
+
+  <dialog id="level-dialog" class="game-dialog" aria-labelledby="level-dialog-title">
+    <div class="dialog-heading"><div><p class="eyebrow">三国篇 · 守关之始</p><h2 id="level-dialog-title">选择出征关卡</h2></div><button id="level-close" class="icon-button" type="button" aria-label="关闭关卡选择">×</button></div>
+    <p class="dialog-intro">灵气用于召唤英灵. 前排阻挡, 后排输出, 守住每一条路.</p>
+    <div id="level-list" class="level-list"></div>
+    <div class="dialog-bottom"><p>每关重新布阵与积攒灵气.<br>通关解锁新英灵, 当前浏览器自动保存进度.</p><button id="start-level" class="button primary" type="button">整军出征 <span aria-hidden="true">→</span></button></div>
+  </dialog>
+
+  <dialog id="result-dialog" class="game-dialog result-dialog" aria-labelledby="result-title">
+    <p id="result-eyebrow" class="eyebrow"></p><div id="result-mark" class="result-mark" aria-hidden="true"></div><h2 id="result-title"></h2><p id="result-copy"></p><div id="result-stats" class="result-stats"></div><p id="result-unlock" class="result-unlock"></p>
+    <div class="result-actions"><button id="result-levels" class="button secondary" type="button">选择关卡</button><button id="result-primary" class="button primary" type="button"></button></div>
+  </dialog>
+  <script type="module" src="app.mjs"></script>
+</body>
+</html>

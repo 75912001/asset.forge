@@ -1,0 +1,22 @@
+version: 1
+categories:
+  - key: "td_units"
+    name: "防守单位"
+    id_start: 1001
+    id_end: 1999
+    description: "英雄与聚灵阵. 时间单位为毫秒, 射程 100 代表 1 格."
+  - key: "td_enemies"
+    name: "进攻敌人"
+    id_start: 2001
+    id_end: 2999
+    description: "速度 100 代表每秒前进 1 格, 所有敌人突破均扣 1 点城门耐久."
+  - key: "td_levels"
+    name: "闯关配置"
+    id_start: 3001
+    id_end: 3999
+    description: "按 ID 顺序逐关解锁. 预计时长限制最后一次出兵, 清场后才获胜."
+  - key: "td_spawns"
+    name: "出兵波次"
+    id_start: 4001
+    id_end: 9999
+    description: "路线 0-4 对应从上到下, 时间均为毫秒, 出兵按时间推进."

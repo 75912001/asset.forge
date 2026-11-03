@@ -1,5 +1,5 @@
 import {createServer} from 'node:http';
-import {readFile,mkdir,readdir,realpath,stat} from 'node:fs/promises';
+import {readFile,mkdir,readdir,realpath,stat,lstat} from 'node:fs/promises';
 import {resolve,join,extname,dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {LOCAL_OWNER} from './store.mjs';
@@ -9,6 +9,7 @@ import {normalizePngReference} from '../public/editor/png.mjs';
 import {workspaceFiles} from '../public/editor/workspace.mjs';
 import {port} from './config.mjs';
 const projectRoot=resolve(dirname(fileURLToPath(import.meta.url)),'..');
+const gameTypes={'.html':'text/html; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.png':'image/png','.svg':'image/svg+xml'};
 export async function createLocalServer({root=projectRoot,dataDir=join(root,'data'),resourceDir,seed,projectsDir=join(root,'projects')}={}) {
   await mkdir(dataDir,{recursive:true});
   const projects=await openProjects({root,dataDir,resourceDir,seed,projectsDir});
@@ -16,6 +17,21 @@ export async function createLocalServer({root=projectRoot,dataDir=join(root,'dat
     const safe=normalizePngReference(path),base=await realpath(config.resourcesRoot),file=await realpath(join(base,...safe.split('/')));
     if(!within(base,file)||!(await stat(file)).isFile())throw Object.assign(new Error('资源不在指定目录中'),{status:400});
     return file;
+  }
+  async function gameFile(folder,name) {
+    if(!name||/[\\:\0]/.test(name)||name.split('/').some(part=>!part||part==='.'||part==='..'))throw Object.assign(new Error('游戏文件路径无效'),{status:400});
+    const type=gameTypes[extname(name)];
+    if(!type)throw Object.assign(new Error('游戏文件类型不支持'),{status:404});
+    const directory=join(folder,'game'),directoryInfo=await lstat(directory);
+    if(directoryInfo.isSymbolicLink()||!directoryInfo.isDirectory())throw Object.assign(new Error('游戏目录必须是项目内的普通目录'),{status:400});
+    // 根目录和最终文件都校验真实路径, 避免符号链接将静态读取引向项目外.
+    const base=await realpath(directory);
+    if(base!==directory||!within(folder,base))throw Object.assign(new Error('游戏目录超出项目范围'),{status:400});
+    const requested=resolve(base,...name.split('/')),info=await lstat(requested);
+    if(info.isSymbolicLink()||!info.isFile())throw Object.assign(new Error('游戏入口或资源必须是普通文件'),{status:400});
+    const file=await realpath(requested);
+    if(!within(base,file))throw Object.assign(new Error('游戏资源超出游戏目录'),{status:400});
+    return {file,type};
   }
   function imageBucket(config){return {async head(key){if(!key.startsWith(LOCAL_OWNER+'/'))return null;try{await resourceFile(config,key.slice(LOCAL_OWNER.length+1));return {};}catch{return null;}}};}
   async function listResources(config) {
@@ -38,7 +54,7 @@ export async function createLocalServer({root=projectRoot,dataDir=join(root,'dat
       if(![`127.0.0.1:${port}`,`localhost:${port}`].includes(host))return send(403,{error:'仅允许本机访问'});
       const origin='http://'+host,url=new URL(req.url,origin),method=req.method;
       // 外部链接可进入明确的 HTML 页面, 数据接口和嵌入资源仍要求本地编辑器来源.
-      const pageNavigation=method==='GET'&&['/','/editor/index.html','/editor/hero-example.html'].includes(url.pathname)&&req.headers['sec-fetch-mode']==='navigate'&&req.headers['sec-fetch-dest']==='document';
+      const pageNavigation=method==='GET'&&(['/','/editor/index.html','/editor/hero-example.html'].includes(url.pathname)||/^\/games\/[a-z][a-z0-9_-]{0,63}\/index\.html$/.test(url.pathname))&&req.headers['sec-fetch-mode']==='navigate'&&req.headers['sec-fetch-dest']==='document';
       if(req.headers.origin&&req.headers.origin!==origin||req.headers['sec-fetch-site']==='cross-site'&&!pageNavigation)return send(403,{error:'仅允许本地编辑器访问'});
       let body;
       if(!['GET','HEAD'].includes(method)){const parts=[];let size=0;for await(const part of req){size+=part.length;if(size>16*1024*1024)return send(413,{error:'请求过大'});parts.push(part);}body=Buffer.concat(parts);}
@@ -56,7 +72,14 @@ export async function createLocalServer({root=projectRoot,dataDir=join(root,'dat
         if(method==='PATCH')return send(200,{project:await projects.rename(id,await request.json())});
         return send(405,{error:'不支持此请求方法'});
       }
-      const {meta,config,store}=await projects.context(id),bucket=imageBucket(config);
+      const {meta,folder,config,store}=await projects.context(id),bucket=imageBucket(config);
+      if(path==='/game') {
+        if(method!=='GET')return send(405,{error:'不支持此请求方法'});
+        try{await gameFile(folder,'index.html');}
+        catch(error){if(error.code==='ENOENT')return send(200,{available:false,url:null});throw error;}
+        const encodedId=encodeURIComponent(id);
+        return send(200,{available:true,url:`/games/${encodedId}/index.html?project=${encodedId}`});
+      }
       if(path==='/workspace') {
         const response=await handleWorkspaceRequest(request,store.db,bucket),data=await response.json();
         if(data.user)data.user.name=meta.name;return send(response.status,{...data,project:meta});
@@ -90,6 +113,14 @@ export async function createLocalServer({root=projectRoot,dataDir=join(root,'dat
       }
       if(url.pathname.startsWith('/api/'))return send(404,{error:'请使用带项目标识的接口'});
       if(method!=='GET')return send(405,{error:'不支持此请求方法'});
+      const gameMatch=/^\/games\/([^/]+)\/(.+)$/.exec(url.pathname);
+      if(gameMatch) {
+        let id,name;
+        try{id=decodeURIComponent(gameMatch[1]);name=decodeURIComponent(gameMatch[2]);}
+        catch{throw Object.assign(new Error('游戏地址编码无效'),{status:400});}
+        const {folder}=await projects.context(id),{file,type}=await gameFile(folder,name);
+        return send(200,await readFile(file),type);
+      }
       if(url.pathname==='/favicon.ico'){res.writeHead(204);return res.end();}
       const name=url.pathname==='/'?'index.html':url.pathname.startsWith('/editor/')?decodeURIComponent(url.pathname.slice(8)):null;
       if(!name)return send(404,{error:'页面不存在'});

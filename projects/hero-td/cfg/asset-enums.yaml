@@ -1,0 +1,23 @@
+version: 1
+enums:
+  - key: "td_role"
+    label: "防守职责"
+    items:
+      - key: "undefined"
+        label: "未定义"
+        value: 0
+      - key: "producer"
+        label: "产灵气"
+        value: 1
+      - key: "archer"
+        label: "远程单攻"
+        value: 2
+      - key: "guard"
+        label: "近战阻挡"
+        value: 3
+      - key: "cleave"
+        label: "近战群攻"
+        value: 4
+      - key: "slow"
+        label: "远程减速"
+        value: 5

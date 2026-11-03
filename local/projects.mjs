@@ -9,7 +9,7 @@ import {pngReferences} from '../public/editor/png.mjs';
 export const within=(root,path)=>{const tail=relative(root,path);return !isAbsolute(tail)&&tail!=='..'&&!tail.startsWith('..\\')&&!tail.startsWith('../');};
 const fail=(message,status=400)=>Object.assign(new Error(message),{status});
 export function validateProjectId(id) {
-  if(typeof id!=='string'||!/^[a-z][a-z0-9_]{0,63}$/.test(id)||/^(con|prn|aux|nul|com[0-9]|lpt[0-9])$/.test(id))throw fail('项目标识需以小写字母开头, 仅含小写字母、数字或下划线, 最长 64 位, 不能使用 Windows 保留名称');
+  if(typeof id!=='string'||!/^[a-z][a-z0-9_-]{0,63}$/.test(id)||/^(con|prn|aux|nul|com[0-9]|lpt[0-9])$/.test(id))throw fail('项目标识需以小写字母开头, 仅含小写字母、数字、下划线或连字符, 最长 64 位, 不能使用 Windows 保留名称');
   return id;
 }
 function projectMetadata(input) {

@@ -4,6 +4,7 @@ import {mkdtemp,cp,rm,readFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
 import {createLocalServer} from '../local/server.mjs';
+import {upgradeHeroMotion} from '../public/editor/hero-runtime.mjs';
 
 test('英雄动作保存, 重启, 项目隔离, 并发冲突及单独导出走统一工作区链路',async t=>{
   const root=await mkdtemp(join(tmpdir(),'hero-motion-'));
@@ -28,4 +29,14 @@ test('英雄动作保存, 重启, 项目隔离, 并发冲突及单独导出走�
   assert.equal(exported.status,200);assert.deepEqual((await exported.json()).files,['hero-motion.yaml']);
   assert.match(await readFile(join(root,'projects/one/cfg/hero-motion.yaml'),'utf8'),/amplitude: 0.65/);
   assert.equal((await send('/api/projects/one/export','POST',{scope:'__hero_motion__',filename:'asset-categories.yaml',expectedRevision:1})).status,409);
+  const upgraded={...current.workspace,heroMotion:upgradeHeroMotion(current.workspace.heroMotion)};
+  upgraded.heroMotion.combat.hitStrength=1.4;
+  assert.equal((await send(endpoint,'PUT',{workspace:upgraded,expectedRevision:2})).status,200);
+  await app.close();await start();
+  const v2=await(await send(endpoint)).json();assert.equal(v2.workspace.heroMotion.version,2);assert.equal(v2.workspace.heroMotion.combat.hitStrength,1.4);assert.equal(v2.workspace.heroMotion.slots.weapon.x,60);
+  assert.equal((await(await send('/api/projects/two/workspace')).json()).workspace.heroMotion.version,1);
+  const invalidV2=structuredClone(v2.workspace);invalidV2.heroMotion.combat.hitStop=.1;
+  assert.equal((await send(endpoint,'PUT',{workspace:invalidV2,expectedRevision:v2.revision})).status,400);
+  assert.equal((await send('/api/projects/one/export','POST',{scope:'__hero_motion__',filename:'asset-categories.yaml',expectedRevision:v2.revision})).status,200);
+  const yaml=await readFile(join(root,'projects/one/cfg/hero-motion.yaml'),'utf8');assert.match(yaml,/version: 2/);assert.match(yaml,/hitStrength: 1.4/);assert.doesNotMatch(yaml,/hitStop: 0.1/);
 });

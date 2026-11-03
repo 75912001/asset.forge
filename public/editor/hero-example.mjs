@@ -1,4 +1,5 @@
-import {createHeroMotion,drawHero,normalizeHeroMotion} from './hero-runtime.mjs';
+import {drawHero,normalizeHeroMotion,createAttackTiming} from './hero-runtime.mjs';
+import {createHeroPreview} from './hero-preview.mjs';
 import {loadHeroImage} from './hero-assets.mjs';
 const $=id=>document.getElementById(id),params=new URLSearchParams(location.search);
 const project=params.get('project'),headPath=params.get('hero'),weaponPath=params.get('weapon');
@@ -18,12 +19,17 @@ async function load() {
     if(!response.ok)throw new Error(data.error||'读取配置失败');
     const resource=path=>base+'/images?file='+encodeURIComponent(path);
     const [head,weapon]=await Promise.all([loadHeroImage(headPath,256,resource(headPath)),weaponPath?loadHeroImage(weaponPath,128,resource(weaponPath)):null]);
-    config=normalizeHeroMotion(data.workspace.heroMotion);images={head,weapon};motion=createHeroMotion(config);lastTime=null;
-    $('example-status').textContent=`已读取 ${project} / ${headPath} / 已保存版本 v${data.revision}. 全局幅度 ${Math.round(config.amplitude*100)}%.`;
+    config=normalizeHeroMotion(data.workspace.heroMotion);images={head,weapon};motion=createHeroPreview(config);lastTime=null;
+    $('example-combat').hidden=config.version!==2;
+    if(['shoot','thrust','slash','cast','strike'].includes(params.get('style')))$('example-style').value=params.get('style');
+    $('example-impact').value=params.get('critical')==='true'?'critical':'normal';
+    $('example-status').textContent=`已读取 ${project} / ${headPath} / 已保存版本 v${data.revision}, 动作 v${config.version}. 全局幅度 ${Math.round(config.amplitude*100)}%.`;
     $('example-check-result').textContent='';render();
   }catch(cause){motion=null;context.clearRect(0,0,512,512);$('example-status').textContent='读取失败: '+cause.message;}
 }
-$('example-controls').addEventListener('click',event=>{const button=event.target.closest('[data-action]');if(button&&motion){motion.setAction(button.dataset.action);render();}});
+function play(event){const button=event.target.closest('[data-action]');if(button&&motion){motion.setAction(button.dataset.action,{style:$('example-style').value,critical:$('example-impact').value==='critical'});paused=false;lastTime=null;render();}}
+$('example-controls').addEventListener('click',play);$('example-combat').addEventListener('click',play);
+$('example-style').addEventListener('change',()=>{if(motion){motion.reset();render();}});
 $('example-pause').addEventListener('click',()=>{paused=!paused;lastTime=null;$('example-pause').textContent=paused?'继续':'暂停';});
 $('example-reload').addEventListener('click',load);
 // 使用真实 Canvas 比较单次和多次时间推进, 同时检查动作计算和透明像素渲染.
@@ -31,13 +37,15 @@ $('example-check').addEventListener('click',()=>{
   if(!motion)return;
   try {
     let checks=0;
-    for(const action of ['idle','walk-left','walk-right','attack','hit'])for(const fraction of [.25,.5,.9]) {
-      const duration=config.actions[action.startsWith('walk')?'walk':action]?.duration||1;
-      const seconds=duration*fraction,a=createHeroMotion(config),b=createHeroMotion(config);
-      a.setAction(action);b.setAction(action);a.advance(seconds);
+    const cases=config.version===1?['idle','walk-left','walk-right','attack','hit'].map(action=>({action,options:{},duration:config.actions[action.startsWith('walk')?'walk':action]?.duration||1})):
+      ['shoot','thrust','slash','cast','strike'].flatMap(style=>[false,true].flatMap(critical=>['attack','hit','combo'].map(action=>({action,options:{style,critical},duration:action==='hit'?(critical?.22:.18):createAttackTiming(config)(0,1).duration}))));
+    for(const {action,options,duration} of cases)for(const fraction of [.25,.5,.9]) {
+      const seconds=duration*fraction,a=createHeroPreview(config),b=createHeroPreview(config);
+      a.setAction(action,options);b.setAction(action,options);a.advance(seconds);
       for(let i=0;i<8;i++)b.advance(seconds/8);
       const snapshots=[a.snapshot(),b.snapshot()];
-      for(const part of ['head','weapon'])for(const key of ['dx','dy','sx','sy'])if(Math.abs(snapshots[0].pose.parts[part][key]-snapshots[1].pose.parts[part][key])>1e-10)throw new Error(`${action}: 姿势不同`);
+      const compare=(left,right)=>{for(const key of Object.keys(left)){if(typeof left[key]==='object')compare(left[key],right[key]);else if(Math.abs(left[key]-right[key])>1e-10)throw new Error(`${action}: 姿势不同`);}};
+      compare(snapshots[0].pose,snapshots[1].pose);
       const pixels=snapshots.map(snapshot=>{const output=document.createElement('canvas');output.width=output.height=256;const ctx=output.getContext('2d');drawHero(ctx,images,snapshot);return ctx.getImageData(0,0,256,256).data;});
       if(!pixels[0].every((value,index)=>value===pixels[1][index]))throw new Error(`${action}: 画布像素不同`);
       checks++;

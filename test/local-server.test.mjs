@@ -129,7 +129,7 @@ test('independent projects isolate the same category, ID, PNG filename, enums, d
 
 test('project creation validates identifiers and duplicate directories; rename changes only the display name',async t=>{
   const f=await fixture(t,{legacy:false}),app=await f.start();assert.deepEqual((await (await fetch(app.url+'/api/projects')).json()).projects,[]);
-  for(const id of ['../escape','SA','a-b','con','aux','nul','com1','lpt9','',null,'a'.repeat(65)])assert.equal((await json(app.url+'/api/projects','POST',{id,name:'test'})).status,400);
+  for(const id of ['../escape','SA','-ab','con','aux','nul','com1','lpt9','',null,'a'.repeat(65)])assert.equal((await json(app.url+'/api/projects','POST',{id,name:'test'})).status,400);
   assert.equal((await json(app.url+'/api/projects','POST',{id:'sa',name:' '})).status,400);
   const results=await Promise.all([json(app.url+'/api/projects','POST',{id:'sa',name:'SA'}),json(app.url+'/api/projects','POST',{id:'sa',name:'Other'})]);assert.deepEqual(results.map(result=>result.status),[201,409]);
   const response=await json(api(app,'sa',''),'PATCH',{name:'石器时代'});assert.equal(response.status,200);assert.equal((await response.json()).project.name,'石器时代');

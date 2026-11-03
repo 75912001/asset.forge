@@ -16,7 +16,9 @@ export async function mountProjects({canSwitch,notify}) {
   current=null;
   const $=id=>document.getElementById(id),esc=text=>String(text).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   $('project-controls').hidden=false;$('project-placeholder').hidden=true;
-  const selector=$('project-select'),dialog=$('project-dialog'),form=$('project-form');
+  const selector=$('project-select'),dialog=$('project-dialog'),form=$('project-form'),testButton=$('project-test');
+  let gameUrl=null;
+  testButton.disabled=true;testButton.title='请先选择已配置游戏入口的项目';
   const showError=message=>{$('project-error').textContent=message;$('project-error').hidden=!message;};
   function remember(id){try{localStorage.setItem('asset-forge-last-project',id);}catch{/* 记忆偏好失败不影响项目数据. */}}
   function navigate(id){remember(id);window.location.assign('/?project='+encodeURIComponent(id));}
@@ -32,6 +34,14 @@ export async function mountProjects({canSwitch,notify}) {
   }
   $('project-new').addEventListener('click',()=>open(false));
   $('project-rename').addEventListener('click',()=>open(true));
+  testButton.addEventListener('click',()=>{
+    if(!current||!gameUrl)return;
+    if(!canSwitch()){notify('请先保存或放弃当前项目的修改, 并处理待恢复草稿, 再测试游戏.');return;}
+    // 入口提前检查, 点击时同步打开窗口, 保留浏览器的用户操作授权.
+    const popup=window.open(gameUrl,'asset-forge-game-'+current.id,'popup=yes,width=1280,height=900,resizable=yes,scrollbars=yes');
+    if(!popup){notify('游戏弹窗被浏览器拦截, 请允许本站弹窗后再点击测试.');return;}
+    popup.opener=null;popup.focus();
+  });
   $('project-cancel').addEventListener('click',()=>dialog.close());
   form.addEventListener('submit',async event=>{
     event.preventDefault();if(!editing&&!allowed())return;
@@ -62,6 +72,13 @@ export async function mountProjects({canSwitch,notify}) {
     remember(current.id);
     window.history.replaceState(null,'','/?project='+encodeURIComponent(current.id));
     document.title=current.name+' · Asset Forge';
+    try {
+      const response=await fetch(projectApi('/game'),{cache:'no-store'}),data=await response.json();
+      if(!response.ok)throw new Error(data.error||'无法检查游戏入口');
+      gameUrl=data.available?data.url:null;
+      testButton.disabled=!gameUrl;
+      testButton.title=gameUrl?'打开当前项目的游戏, 使用已保存配置':'当前项目尚未添加 game/index.html 游戏入口';
+    } catch(error){testButton.title=error.message;notify('游戏入口检查失败: '+error.message);}
     // 旧浏览器草稿仅映射到迁移得到的 mmorpg. 原存储保持不变, 不自动提交数据.
     if(current.legacyMigration===1)try {
       const importMarker=projectStorageKey('asset-forge-legacy-browser-imported');

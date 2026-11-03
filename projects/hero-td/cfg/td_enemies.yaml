@@ -1,0 +1,53 @@
+version: 1
+category: "td_enemies"
+fields:
+  - key: "id"
+    label: "ID"
+    type: "uint32"
+    required: true
+  - key: "name"
+    label: "名称"
+    type: "string"
+    required: true
+  - key: "icon"
+    label: "敌人头像"
+    type: "png"
+    required: true
+  - key: "hp"
+    label: "生命"
+    type: "uint32"
+    required: true
+  - key: "damage"
+    label: "每次伤害"
+    type: "uint32"
+    required: true
+  - key: "interval_ms"
+    label: "攻击间隔(毫秒)"
+    type: "uint32"
+    required: true
+  - key: "speed_percent"
+    label: "移动速度(100 = 1格/秒)"
+    type: "uint32"
+    required: true
+rows:
+  - id: 2001
+    name: "步卒"
+    icon: "enemies/步卒.png"
+    hp: 140
+    damage: 20
+    interval_ms: 1000
+    speed_percent: 25
+  - id: 2002
+    name: "快兵"
+    icon: "enemies/快兵.png"
+    hp: 85
+    damage: 18
+    interval_ms: 800
+    speed_percent: 65
+  - id: 2003
+    name: "重甲步卒"
+    icon: "enemies/重甲步卒.png"
+    hp: 800
+    damage: 38
+    interval_ms: 1200
+    speed_percent: 15
