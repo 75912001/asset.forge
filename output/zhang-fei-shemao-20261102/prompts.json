@@ -1,0 +1,29 @@
+{
+  "mode": "built-in image_gen",
+  "project": "mmorpg",
+  "head": {
+    "prompt": "Use case: stylized-concept. Asset type: one standalone 2D cartoon game hero HEAD, Zhang Fei (张飞), for a 256 x 256 transparent PNG.\nInput image 1 (legend.png) and image 2 (workers.png) are STYLE references ONLY. Learn the simple head proportions, tiny dot eyes, rounded bold black uniform outlines and flat colors from the king/farmer/blacksmith heads. Ignore every body, weapon, yellow/gray card, border and text. Do not copy those characters' identities.\nCreate Zhang Fei recognizable entirely from his head: black topknot bound with a small dark-red band, thick bold eyebrows and tiny black dot eyes, broad warm tan face, large simple black bushy beard with a few rounded outward tufts and a compact black moustache. His rugged energetic expression is conveyed by eyebrows, not detailed eyes. Use only a handful of connected hair/beard shapes; NO individual hairs. Keep the simple iconic face of the references, not a detailed chibi general portrait.\nComposition: exactly ONE complete head with ears, hair and beard. Head faces SCREEN LEFT in a subtle three-quarter view, preserving both eyes. Offset facial features to the left and reveal more right-side cheek and right ear so the direction is clearly visible, not a symmetric frontal face or merely left-looking pupils. Neutral pose suitable for horizontal mirroring. Entire head and topknot centered with transparent margin, longest occupied dimension about 84% of the square canvas.\nStyle: compact rounded geometric silhouette, thick round-joined black outlines, tiny dot/short line eyes, minimal mouth, nose omitted or one tiny simple mark, large clean flat color fills, very little edge shading and one simple highlight at most. Crisp readable shapes at 256 pixels.\nBackground must be genuine transparent alpha, including the space around hair and ears. No background color or painted checkerboard. No ground shadow, card, frame, writing, watermark, neck, shoulders, torso, hands, body, weapon, motion trails or extra object. Output a square PNG; final production delivery will be normalized to exactly 256 x 256 without changing the art.",
+    "referenced_image_paths": [
+      ".agents/skills/create-character/references/legend.png",
+      ".agents/skills/create-character/references/workers.png"
+    ],
+    "transparent_background": true,
+    "actual_reference_transport": "last two viewed conversation images",
+    "result": "output/zhang-fei-shemao-20261102/head-source.png",
+    "final": "projects/mmorpg/assets/heroes/张飞.png"
+  },
+  "weapon": {
+    "prompt": "Use case: stylized-concept. Asset type: ONE standalone 2D cartoon game equipment icon, Zhang Fei's Zhangba Shemao (丈八蛇矛, serpent-bladed spear), for a 128 x 128 transparent PNG.\nInput image 1 (items-overview.png) is the main STYLE reference. Match its thick rounded black outlines, compact clean object silhouettes, vibrant flat colors and simple highlight patches. Input image 2 (basic-symbols.png) is supplemental STYLE reference for simplified weapons. Do not reproduce sheets, gray rounded cards, borders, padlocks, interface, writing or any other object.\nDepict ONE complete recognizable long spear, diagonal from bottom left to top right, with a sinuous double-edged S-curved silver-blue spearhead tapering to a pointed tip, attached to one straight dark charcoal shaft. The snake identity is the wavy blade profile, NOT a snake animal or dragon sculpture. Add a simple short red tassel attached just below the blade and one small muted-gold collar. Keep blade thick enough and shaft sturdy enough to read clearly at 128 pixels. Use a few broad rounded color shapes, no intricate engravings. Preserve a long spear's proportion without stretching the image or cutting either end.\nStyle: rounded geometric cartoon weapon, bold near-black uniform outline with round joins, silver-blue blade, dark shaft, red tassel and small gold accent, flat fills, minimal edge shadows, one simple block-shaped blade highlight. No realistic metallic reflections, gradients, 3D rendering or dense texture.\nComposition: centered complete spear, both blade tip and shaft end visible, diagonal on a square canvas with at least 8% clear margin around the full object. A single independent equipment asset, no hands, arms, head, character, stand, pedestal, scenery, ground shadow, text or frame.\nBackground must be genuine transparent alpha, not white/black background or painted checkerboard. Output a square PNG; final production delivery will be normalized to exactly 128 x 128 without changing the art.",
+    "referenced_image_paths": [
+      ".agents/skills/create-icon/references/items-overview.png",
+      ".agents/skills/create-icon/references/basic-symbols.png"
+    ],
+    "transparent_background": true,
+    "actual_reference_transport": "last two viewed conversation images",
+    "result": "output/zhang-fei-shemao-20261102/weapon-source.png",
+    "final": "projects/mmorpg/assets/icons/weapons/zhangba-shemao.png",
+    "final_note": "历史成品路径, 该文件现已被后续重绘版本替代. 本次原始生成图保留在 result 指向的 weapon-source.png; 当前中文成品及其实际提示词见 output/weapon-remake-20261102/提示词.json."
+  },
+  "notes": "Hero faces screen left; right-facing use is a horizontal mirror of the entire hero group. Static PNG delivery only; animation not tested.",
+  "reference_path_base": "repository-root"
+}

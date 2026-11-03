@@ -1,4 +1,5 @@
 import {UINT32_MAX} from './model.mjs';
+import {normalizePngReference} from './png.mjs';
 export function emptyEnum() {
   return {key:'',label:'',items:[{key:'undefined',label:'未定义',value:0}]};
 }
@@ -27,7 +28,13 @@ export function normalizeEnums(definitions) {
       const value=Number(item.value);
       const hasMax=item.max!==undefined&&item.max!=='';
       if(hasMax&&(!/^\d+$/.test(String(item.max))||Number(item.max)>UINT32_MAX||Number(item.max)<value))throw new Error('范围终值必须为不小于起值的 uint32');
-      return {key:item.key,label:item.label.trim(),value,...(hasMax?{max:Number(item.max)}:{})};
+      const icon=item.icon===undefined||item.icon===null||item.icon===''?undefined:normalizePngReference(item.icon);
+      // 宝箱展示统一来自枚举, 零项不代表可用的宝箱类型.
+      if(definition.key==='chest_type') {
+        if(value===0&&icon)throw new Error('宝箱类型未定义项不能配置图标');
+        if(value!==0&&!icon)throw new Error(`宝箱类型 ${item.label} 必须配置 PNG 图标`);
+      }
+      return {key:item.key,label:item.label.trim(),value,...(hasMax?{max:Number(item.max)}:{}),...(icon?{icon}:{})};
     });
     if(!items.some(item=>item.key==='undefined'&&item.label==='未定义'&&item.value===0&&(item.max??0)===0))throw new Error('每个枚举必须保留 undefined=0"未定义"');
     const ordered=[...items].sort((a,b)=>a.value-b.value);
@@ -41,5 +48,5 @@ export function enumItemForValue(definition,value) {
 }
 export function enumsYaml(definitions) {
   const saved=normalizeEnums(definitions);
-  return 'version: 1\n'+(saved.length?'enums:\n'+saved.map(definition=>`  - key: ${JSON.stringify(definition.key)}\n    label: ${JSON.stringify(definition.label)}\n    items:\n${definition.items.map(item=>`      - key: ${JSON.stringify(item.key)}\n        label: ${JSON.stringify(item.label)}\n        value: ${item.value}\n${item.max===undefined?'':`        max: ${item.max}\n`}`).join('')}`).join(''):'enums: []\n');
+  return 'version: 1\n'+(saved.length?'enums:\n'+saved.map(definition=>`  - key: ${JSON.stringify(definition.key)}\n    label: ${JSON.stringify(definition.label)}\n    items:\n${definition.items.map(item=>`      - key: ${JSON.stringify(item.key)}\n        label: ${JSON.stringify(item.label)}\n        value: ${item.value}\n${item.max===undefined?'':`        max: ${item.max}\n`}${item.icon?`        icon: ${JSON.stringify(item.icon)}\n`:''}`).join('')}`).join(''):'enums: []\n');
 }

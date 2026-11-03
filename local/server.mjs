@@ -37,7 +37,9 @@ export async function createLocalServer({root=projectRoot,dataDir=join(root,'dat
       const port=server.address().port,host=req.headers.host;
       if(![`127.0.0.1:${port}`,`localhost:${port}`].includes(host))return send(403,{error:'仅允许本机访问'});
       const origin='http://'+host,url=new URL(req.url,origin),method=req.method;
-      if(req.headers.origin&&req.headers.origin!==origin||req.headers['sec-fetch-site']==='cross-site')return send(403,{error:'仅允许本地编辑器访问'});
+      // 外部链接可进入明确的 HTML 页面, 数据接口和嵌入资源仍要求本地编辑器来源.
+      const pageNavigation=method==='GET'&&['/','/editor/index.html','/editor/hero-example.html'].includes(url.pathname)&&req.headers['sec-fetch-mode']==='navigate'&&req.headers['sec-fetch-dest']==='document';
+      if(req.headers.origin&&req.headers.origin!==origin||req.headers['sec-fetch-site']==='cross-site'&&!pageNavigation)return send(403,{error:'仅允许本地编辑器访问'});
       let body;
       if(!['GET','HEAD'].includes(method)){const parts=[];let size=0;for await(const part of req){size+=part.length;if(size>16*1024*1024)return send(413,{error:'请求过大'});parts.push(part);}body=Buffer.concat(parts);}
       const request=new Request(url,{method,headers:{...req.headers,'oai-authenticated-user-id':LOCAL_OWNER,'oai-authenticated-user-email':'Local workspace'},...(body?.length?{body}: {})});
@@ -75,7 +77,7 @@ export async function createLocalServer({root=projectRoot,dataDir=join(root,'dat
         const response=await handleWorkspaceRequest(new Request(origin+url.pathname.replace(/\/export$/,'/workspace'),{headers:{'oai-authenticated-user-id':LOCAL_OWNER}}),store.db,bucket);
         const current=await response.json();if(!response.ok)return send(response.status,current);
         if(input.expectedRevision!==current.revision)return send(409,{error:'本地数据版本已更新, 请重新加载后导出'});
-        const all=workspaceFiles(current.workspace,input.filename),files=input.scope==='__all__'?all:input.scope==='__enums__'?all.filter(file=>file.name==='asset-enums.yaml'):input.scope==='__chest_appearances__'?all.filter(file=>file.name==='chest-appearances.yaml'):input.scope==='__hero_motion__'?all.filter(file=>file.name==='hero-motion.yaml'):all.filter(file=>file.name===input.scope+'.yaml');
+        const all=workspaceFiles(current.workspace,input.filename),files=input.scope==='__all__'?all:input.scope==='__enums__'?all.filter(file=>file.name==='asset-enums.yaml'):input.scope==='__hero_motion__'?all.filter(file=>file.name==='hero-motion.yaml'):all.filter(file=>file.name===input.scope+'.yaml');
         if(!files.length)return send(400,{error:'导出范围无效'});
         const directory=await realpath(config.exportRoot);
         if(directory!==config.exportRoot)return send(400,{error:'导出目录不能使用符号链接'});

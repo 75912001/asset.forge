@@ -37,6 +37,6 @@ export function pngReferences(workspace,keys=workspace.categories.map(cat=>cat.k
     const table=workspace.tables[key];
     for(const field of table.fields.filter(field=>field.type==='png'))for(const row of table.rows)if(row[field.key])paths.add(normalizePngReference(row[field.key]));
   }
-  for(const appearance of workspace.chestAppearances||[])paths.add(normalizePngReference(appearance.icon));
+  for(const definition of workspace.enums||[])for(const item of definition.items)if(item.icon)paths.add(normalizePngReference(item.icon));
   return [...paths];
 }

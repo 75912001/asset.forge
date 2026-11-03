@@ -1,0 +1,3 @@
+interface:
+  display_name: "创建武器"
+  short_description: "创建128像素透明冷兵器图标, 主轴左上到右下, 统一刃口与弓身方向, 支持批量和提示词"

@@ -1,24 +1,46 @@
+import {chestEnum} from './chest-fixture.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {emptyAssetTable} from '../public/editor/assets.mjs';
 import {normalizeWorkspace} from '../public/editor/workspace.mjs';
-import {enableDrops} from '../public/editor/drops.mjs';
+import {enableDrops,saveDropPackage} from '../public/editor/drops.mjs';
 const ui=await import('../public/editor/drop-editor.mjs').catch(()=>({}));
 
 test('drop custom PNG references persist in the same package save',async t=>{
   const elements=new Map(),previousDocument=globalThis.document;t.after(()=>globalThis.document=previousDocument);
   globalThis.document={getElementById(id){if(!elements.has(id))elements.set(id,{value:'',listeners:{},addEventListener(type,fn){this.listeners[type]=fn;}});return elements.get(id);}};
-  let workspace=normalizeWorkspace(enableDrops({chestAppearances:[{id:1,name:'木箱',icon:'icons/chests/wood.png'}],categories:[{key:'item',name:'道具',start:1,end:99}],enums:[],tables:{item:{...emptyAssetTable(),rows:[{id:1}]}}},{start:200,end:209},{start:210,end:219}));
+  let workspace=normalizeWorkspace(enableDrops({categories:[{key:'item',name:'道具',start:1,end:99}],enums:[chestEnum('icons/chests/wood.png')],tables:{item:{...emptyAssetTable(),rows:[{id:1}]}}},{start:200,end:209},{start:210,end:219}));
   workspace.tables.drop_package.fields.push({key:'icon',label:'图标',type:'png',required:false});
   const path='images/'+'d'.repeat(64)+'.png';
   const editor=ui.mountDropEditor({getWorkspace:()=>workspace,onDirty(){},notify(){},canEdit:()=>true,onSelectPng:async()=>path,commit:async next=>{workspace=next;return true;}});
   const click=data=>elements.get('drops-view').listeners.click({target:{closest:()=>({dataset:data})}});
   const input=(dataset,value)=>elements.get('drops-view').listeners.input({target:{dataset,value}});
-  await click({dropAction:'new'});input({dropPackField:'chest_appearance_id'},'1');input({dropPackField:'name'},'图标包');await click({dropAction:'add-entry'});input({dropEntry:'0',rewardIndex:'0',rewardProperty:'asset_id'},'1');
+  await click({dropAction:'new'});input({dropPackField:'chest_type'},'1');input({dropPackField:'name'},'图标包');await click({dropAction:'add-entry'});input({dropEntry:'0',rewardIndex:'0',rewardProperty:'asset_id'},'1');
   await click({pngSelect:'',dropPackField:'icon'});
   assert.equal(editor.snapshot().pack.icon,path);await click({dropAction:'save'});
   assert.equal(workspace.tables.drop_package.rows[0].icon,path);
 });
+
+test('掉落编辑器展示范围内部宝箱类型与图标, 保存保留实际值',async t=>{
+  const elements=new Map(),previousDocument=globalThis.document;t.after(()=>globalThis.document=previousDocument);
+  globalThis.document={getElementById(id){if(!elements.has(id))elements.set(id,{value:'',listeners:{},addEventListener(type,fn){this.listeners[type]=fn;}});return elements.get(id);}};
+  const definition=chestEnum('icons/chests/wood.png');Object.assign(definition.items[1],{value:10,max:20});
+  const base=enableDrops({categories:[{key:'item',name:'道具',start:1,end:99}],enums:[definition],tables:{item:{...emptyAssetTable(),rows:[{id:1}]}}},{start:200,end:209},{start:210,end:219});
+  let workspace=saveDropPackage(base,{id:200,name:'范围包',selection_mode:'weight',chest_type:15},[{id:210,package_id:200,weight:1,probability:10000,rewards:[{asset_id:1,count:1,probability:10000}]}]),calls=0;
+  const editor=ui.mountDropEditor({getWorkspace:()=>workspace,onDirty(){},notify(){},canEdit:()=>true,commit:async next=>{workspace=next;calls++;return true;}});
+  assert.match(elements.get('drop-chest-type').innerHTML,/<option value="15" selected>木箱 · 15<\/option>/);
+  assert.match(elements.get('drop-chest-type').innerHTML,/<option value="10"/);
+  assert.doesNotMatch(elements.get('drop-chest-type').innerHTML,/无效类型/);
+  assert.match(elements.get('drop-chest-preview').innerHTML,/icons%2Fchests%2Fwood.png/);
+  assert.match(elements.get('drop-packages').innerHTML,/icons%2Fchests%2Fwood.png/);
+  const input=(dataset,value)=>elements.get('drops-view').listeners.input({target:{dataset,value}});
+  const save=()=>elements.get('drops-view').listeners.click({target:{closest:()=>({dataset:{dropAction:'save'}})}});
+  input({dropPackField:'name'},'范围包已编辑');await save();
+  assert.equal(calls,1);assert.equal(workspace.tables.drop_package.rows[0].chest_type,15);assert.equal(editor.snapshot().pack.chest_type,15);
+  input({dropPackField:'chest_type'},'10');await save();
+  assert.equal(calls,2);assert.equal(workspace.tables.drop_package.rows[0].chest_type,10);
+});
+
 test('drop editor saves the full aggregate once and retains a failed save as a recoverable draft',async t=>{
   assert.equal(typeof ui.mountDropEditor,'function','drop editor is missing');
   const elements=new Map();
@@ -26,12 +48,12 @@ test('drop editor saves the full aggregate once and retains a failed save as a r
   t.after(()=>{globalThis.document=previousDocument;globalThis.confirm=previousConfirm;});
   globalThis.document={getElementById(id){if(!elements.has(id))elements.set(id,{value:'',hidden:false,textContent:'',innerHTML:'',listeners:{},addEventListener(type,fn){this.listeners[type]=fn;}});return elements.get(id);}};
   globalThis.confirm=()=>true;
-  let workspace=normalizeWorkspace(enableDrops({chestAppearances:[{id:1,name:'木箱',icon:'icons/chests/wood.png'}],categories:[{key:'item',name:'道具',start:1,end:99}],enums:[],tables:{item:{...emptyAssetTable(),rows:[{id:1},{id:2}]}}},{start:200,end:209},{start:210,end:219}));
+  let workspace=normalizeWorkspace(enableDrops({categories:[{key:'item',name:'道具',start:1,end:99}],enums:[chestEnum('icons/chests/wood.png')],tables:{item:{...emptyAssetTable(),rows:[{id:1},{id:2}]}}},{start:200,end:209},{start:210,end:219}));
   let calls=0,fail=true;
   const editor=ui.mountDropEditor({getWorkspace:()=>workspace,onDirty(){},notify(){},canEdit:()=>true,commit:async next=>{calls++;if(fail)return false;workspace=normalizeWorkspace(next);return true;}});
   const click=async data=>elements.get('drops-view').listeners.click({target:{closest:()=>({dataset:data})}});
   const input=(data,value)=>elements.get('drops-view').listeners.input({target:{dataset:data,value}});
-  await click({dropAction:'new'});input({dropPackField:'chest_appearance_id'},'1');input({dropPackField:'name'},'组合包');await click({dropAction:'add-entry'});
+  await click({dropAction:'new'});input({dropPackField:'chest_type'},'1');input({dropPackField:'name'},'组合包');await click({dropAction:'add-entry'});
   assert.deepEqual(editor.snapshot().entries[0].rewards,[{asset_id:'',count:1,probability:10000}],'adding a combination must immediately show an editable reward probability');
   assert.match(elements.get('drop-entries').innerHTML,/data-reward-property="probability"/);
   input({dropEntry:'0',dropField:'weight'},'10');
@@ -51,7 +73,7 @@ test('legacy migration previews the original range, backs up before one commit, 
   const elements=new Map(),previousDocument=globalThis.document;
   t.after(()=>{globalThis.document=previousDocument;});
   globalThis.document={getElementById(id){if(!elements.has(id))elements.set(id,{value:'',hidden:false,textContent:'',innerHTML:'',listeners:{},addEventListener(type,fn){this.listeners[type]=fn;}});return elements.get(id);}};
-  let workspace=normalizeWorkspace({categories:[{key:'loot_bag',name:'掉落包',start:200,end:209}],enums:[],tables:{loot_bag:emptyAssetTable()}}),fail=true;
+  let workspace=normalizeWorkspace({categories:[{key:'loot_bag',name:'掉落包',start:200,end:209}],enums:[chestEnum('icons/chests/wood.png')],tables:{loot_bag:emptyAssetTable()}}),fail=true;
   const events=[];
   ui.mountDropEditor({getWorkspace:()=>workspace,onDirty(){},notify(){},canEdit:()=>true,onBackup:()=>events.push('backup'),commit:async next=>{events.push('commit');if(fail)return false;workspace=normalizeWorkspace(next);return true;}});
   assert.match(elements.get('drop-migration-summary').textContent,/200.*209/);

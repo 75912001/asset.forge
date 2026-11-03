@@ -1,0 +1,31 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {mkdtemp,cp,rm,readFile} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join,resolve} from 'node:path';
+import {createLocalServer} from '../local/server.mjs';
+
+test('英雄动作保存, 重启, 项目隔离, 并发冲突及单独导出走统一工作区链路',async t=>{
+  const root=await mkdtemp(join(tmpdir(),'hero-motion-'));
+  await cp(resolve('drizzle'),join(root,'drizzle'),{recursive:true});
+  await cp(resolve('public/editor'),join(root,'public/editor'),{recursive:true});
+  let app;const start=async()=>{app=await createLocalServer({root});await app.listen(0);};
+  t.after(async()=>{await app?.close();await rm(root,{recursive:true,force:true});});await start();
+  const send=(path,method='GET',body)=>fetch(app.url+path,{method,headers:{'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});
+  for(const id of ['one','two'])assert.equal((await send('/api/projects','POST',{id,name:id})).status,201);
+  const endpoint='/api/projects/one/workspace';
+  const loaded=await(await send(endpoint)).json();
+  assert.equal(loaded.workspace.heroMotion?.amplitude,.35);
+  const workspace=loaded.workspace;workspace.heroMotion.amplitude=.65;workspace.heroMotion.slots.weapon.x=60;
+  assert.equal((await send(endpoint,'PUT',{workspace,expectedRevision:1})).status,200);
+  assert.equal((await send(endpoint,'PUT',{workspace,expectedRevision:1})).status,409);
+  await app.close();await start();
+  const current=await(await send(endpoint)).json();assert.equal(current.revision,2);assert.equal(current.workspace.heroMotion.amplitude,.65);assert.equal(current.workspace.heroMotion.slots.weapon.x,60);
+  assert.equal((await(await send('/api/projects/two/workspace')).json()).workspace.heroMotion.amplitude,.35);
+  const invalid=structuredClone(workspace);invalid.heroMotion.actions.attack.weapon.dx=10;
+  assert.equal((await send(endpoint,'PUT',{workspace:invalid,expectedRevision:2})).status,400);
+  const exported=await send('/api/projects/one/export','POST',{scope:'__hero_motion__',filename:'asset-categories.yaml',expectedRevision:2});
+  assert.equal(exported.status,200);assert.deepEqual((await exported.json()).files,['hero-motion.yaml']);
+  assert.match(await readFile(join(root,'projects/one/cfg/hero-motion.yaml'),'utf8'),/amplitude: 0.65/);
+  assert.equal((await send('/api/projects/one/export','POST',{scope:'__hero_motion__',filename:'asset-categories.yaml',expectedRevision:1})).status,409);
+});

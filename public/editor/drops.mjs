@@ -1,5 +1,6 @@
+import {emptyEnum,enumItemForValue} from './enums.mjs';
 export const DROP_FIELDS={
-  drop_package:[{key:'id',label:'ID',type:'uint32',required:true},{key:'name',label:'包名称',type:'string',required:true},{key:'selection_mode',label:'组合抽取模式',type:'string',required:true},{key:'chest_appearance_id',label:'宝箱外观',type:'uint32',required:true}],
+  drop_package:[{key:'id',label:'ID',type:'uint32',required:true},{key:'name',label:'包名称',type:'string',required:true},{key:'selection_mode',label:'组合抽取模式',type:'string',required:true},{key:'chest_type',label:'宝箱类型',type:'enum',enum:'chest_type',required:true}],
   drop_entry:[{key:'id',label:'ID',type:'uint32',required:true},{key:'package_id',label:'所属包',type:'uint32',required:true},{key:'weight',label:'权重',type:'uint32',required:true},{key:'probability',label:'组合概率(万分率)',type:'uint32',required:true},{key:'rewards',label:'奖励组合',type:'asset_list',required:true}]
 };
 export const isDropCategory=category=>Object.hasOwn(DROP_FIELDS,category?.system||'');
@@ -17,8 +18,10 @@ export function enableDrops(workspace,packageRange,entryRange) {
     categories.push({key,system:key,name,...range,description:'支持权重选一或概率独立判定, 命中后按各奖励项的万分率独立判定.'});
     tables[key]={fields:DROP_FIELDS[key].map(field=>({...field})),rows:[]};
   }
-  return {...workspace,categories,tables};
+  return {...workspace,categories,tables,enums:chestEnums(workspace.enums)};
 }
+// 启用掉落仅建立空枚举, 不向新项目引入不存在的图片资源.
+function chestEnums(enums=[]) {return enums.some(entry=>entry.key==='chest_type')?enums:[...enums,{...emptyEnum(),key:'chest_type',label:'宝箱类型'}];}
 export function migrateLootBag(workspace,entryRange) {
   if(workspace.categories.some(category=>isDropCategory(category)||Object.hasOwn(DROP_FIELDS,category.key)))throw new Error('掉落结构已存在或同名冲突, 不能覆盖迁移');
   const legacy=workspace.categories.find(category=>category.key==='loot_bag'),table=workspace.tables.loot_bag;
@@ -28,17 +31,17 @@ export function migrateLootBag(workspace,entryRange) {
   if(name&&name.type!=='string')throw new Error('旧 name 字段不是 string, 请先处理字段冲突');
   const fields=table.fields.map(field=>field.key==='name'?{...field,required:true}:{...field});
   if(!name)fields.push({...DROP_FIELDS.drop_package.find(field=>field.key==='name')});
-  fields.push({...DROP_FIELDS.drop_package.find(field=>field.key==='chest_appearance_id')});
+  fields.push({...DROP_FIELDS.drop_package.find(field=>field.key==='chest_type')});
   const tables={...workspace.tables,drop_package:{fields,rows:table.rows.map(row=>({...row}))},drop_entry:{fields:DROP_FIELDS.drop_entry.map(field=>({...field})),rows:[]}};
   delete tables.loot_bag;
-  return {...workspace,categories:[...workspace.categories.map(category=>category===legacy?{...category,key:'drop_package',system:'drop_package'}:category),{key:'drop_entry',system:'drop_entry',name:'掉落条目',...entryRange,description:'支持权重选一或概率独立判定, 命中后按各奖励项的万分率独立判定.'}],tables};
+  return {...workspace,categories:[...workspace.categories.map(category=>category===legacy?{...category,key:'drop_package',system:'drop_package'}:category),{key:'drop_entry',system:'drop_entry',name:'掉落条目',...entryRange,description:'支持权重选一或概率独立判定, 命中后按各奖励项的万分率独立判定.'}],tables,enums:chestEnums(workspace.enums)};
 }
 export function validateDrops(workspace) {
   const marked=workspace.categories.filter(category=>category.system);
   if(marked.some(category=>!isDropCategory(category)||category.key!==category.system)||marked.length!==0&&marked.length!==2||marked.length===2&&!Object.keys(DROP_FIELDS).every(key=>marked.some(category=>category.key===key)))throw new Error('掉落结构必须同时保留 drop_package 和 drop_entry 分类及其固定标识');
   for(const category of marked)for(const core of DROP_FIELDS[category.system]) {
     const field=workspace.tables[category.key].fields.find(field=>field.key===core.key);
-    if(!field||field.type!==core.type||field.required!==true)throw new Error(`掉落核心字段 ${category.key}.${core.key} 的标识、类型和必填规则不可修改`);
+    if(!field||field.type!==core.type||field.required!==true||field.enum!==core.enum)throw new Error(`掉落核心字段 ${category.key}.${core.key} 的标识、类型、枚举引用和必填规则不可修改`);
   }
   const assetIds=new Set(workspace.categories.filter(category=>!category.system||category.system==='drop_package').flatMap(category=>workspace.tables[category.key].rows.map(row=>row.id)));
   for(const [key,table] of Object.entries(workspace.tables))for(const field of table.fields.filter(field=>field.type==='asset_list'))for(const row of table.rows)for(const reward of row[field.key]||[]) {
@@ -46,10 +49,10 @@ export function validateDrops(workspace) {
   }
   if(!marked.length)return;
   const packages=workspace.tables.drop_package.rows,entries=workspace.tables.drop_entry.rows;
-  const appearanceIds=new Set((workspace.chestAppearances||[]).map(appearance=>appearance.id));
+  const chestTypes=workspace.enums.find(entry=>entry.key==='chest_type');
   for(const pack of packages) {
     if(!['weight','probability'].includes(pack.selection_mode))throw new Error(`掉落包 ${pack.id}: 组合抽取模式必须为 weight 或 probability`);
-    if(!appearanceIds.has(pack.chest_appearance_id))throw new Error(`掉落包 ${pack.id}: 宝箱外观 ${pack.chest_appearance_id} 不存在. 请选择有效外观, 被引用的外观不能删除或修改 ID.`);
+    if(pack.chest_type===0||!enumItemForValue(chestTypes,pack.chest_type))throw new Error(`掉落包 ${pack.id}: 请选择有效的非零宝箱类型`);
   }
   const ids=new Set(packages.map(row=>row.id)),counts=new Map();
   for(const entry of entries) {

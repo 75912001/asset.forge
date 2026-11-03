@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {request as httpRequest} from 'node:http';
 import {mkdtemp,mkdir,writeFile,readFile,rm,cp,rename,stat,readdir} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
@@ -8,7 +9,7 @@ import {createLocalServer} from '../local/server.mjs';
 import {openStore,LOCAL_OWNER} from '../local/store.mjs';
 import {normalizeWorkspace} from '../public/editor/workspace.mjs';
 
-const seed={revision:13,updatedAt:'2026-10-29T06:00:00.000Z',workspace:{chestAppearances:[],categories:[{key:'equipment',name:'装备',start:1,end:9}],enums:[],tables:{equipment:{fields:[{key:'id',label:'ID',type:'uint32',required:true},{key:'name',label:'名称',type:'string',required:true},{key:'icon',label:'图标',type:'png',required:false}],rows:[{id:1,name:'草帽',icon:null}]}}}};
+const seed={revision:13,updatedAt:'2026-10-29T06:00:00.000Z',workspace:{categories:[{key:'equipment',name:'装备',start:1,end:9}],enums:[],tables:{equipment:{fields:[{key:'id',label:'ID',type:'uint32',required:true},{key:'name',label:'名称',type:'string',required:true},{key:'icon',label:'图标',type:'png',required:false}],rows:[{id:1,name:'草帽',icon:null}]}}}};
 const bytes=Uint8Array.from([137,80,78,71,13,10,26,10]);
 async function fixture(t,{legacy=true}={}) {
   const root=await mkdtemp(join(tmpdir(),'asset-forge-projects-'));
@@ -24,6 +25,54 @@ async function fixture(t,{legacy=true}={}) {
 const api=(app,id='mmorpg',path='/workspace')=>app.url+'/api/projects/'+id+path;
 async function json(url,method,body) {return fetch(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});}
 async function workspace(app,id='mmorpg'){const response=await fetch(api(app,id));assert.equal(response.status,200);return response.json();}
+
+// 使用原始 HTTP 保留浏览器请求头, 避免 fetch 自动设置 Sec-Fetch-Mode 干扰导航回归.
+function navigationRequest(url,headers,method='GET') {
+  return new Promise((resolve,reject)=>{
+    const request=httpRequest(url,{headers,method},response=>{
+      const chunks=[];response.on('data',chunk=>chunks.push(chunk));
+      response.on('end',()=>resolve({status:response.statusCode,type:response.headers['content-type'],body:Buffer.concat(chunks).toString()}));
+      response.on('error',reject);
+    });
+    request.on('error',reject);request.end();
+  });
+}
+
+test('外部链接可以顶层打开编辑器与英雄示例, 随后读取同源工作区',async t=>{
+  const f=await fixture(t),app=await f.start();
+  const headers={'sec-fetch-site':'cross-site','sec-fetch-mode':'navigate','sec-fetch-dest':'document'};
+  for(const path of ['/','/editor/index.html?project=mmorpg','/editor/hero-example.html?project=mmorpg']) {
+    const page=await navigationRequest(app.url+path,headers);
+    assert.equal(page.status,200,path);assert.match(page.type,/^text\/html/);assert.match(page.body,/<html/);
+  }
+  const saved=await navigationRequest(api(app),{origin:app.url,'sec-fetch-site':'same-origin','sec-fetch-mode':'cors','sec-fetch-dest':'empty'});
+  assert.equal(saved.status,200);assert.equal(JSON.parse(saved.body).revision,13);
+});
+
+test('导航放行不允许跨站读取接口和脚本, 嵌入页面或写入项目',async t=>{
+  const f=await fixture(t),app=await f.start();
+  const headers={'sec-fetch-site':'cross-site','sec-fetch-mode':'navigate','sec-fetch-dest':'document'};
+  const denied=[
+    ...['/api/health','/api/projects','/api/projects/mmorpg/workspace','/editor/app.mjs','/editor/style.css'].map(path=>({path})),
+    ...['iframe','object','embed','image','script'].map(dest=>({path:'/',headers:{'sec-fetch-dest':dest}})),
+    ...['cors','no-cors'].map(mode=>({path:'/',headers:{'sec-fetch-mode':mode}})),
+    {path:'/',headers:{'sec-fetch-mode':undefined,'sec-fetch-dest':undefined}},
+    {path:'/',method:'POST'},{path:'/',method:'HEAD'},
+    {path:'/api/projects',method:'POST'},
+    {path:'/api/projects/mmorpg/workspace',method:'PUT'},
+    {path:'/api/projects/mmorpg/export',method:'POST'},
+    {path:'/',headers:{origin:'https://external.test'}},
+    {path:'/',headers:{origin:app.url.replace('127.0.0.1','localhost')}},
+    {path:'/',headers:{host:'external.test'}},
+  ];
+  for(const entry of denied) {
+    const requestHeaders=Object.fromEntries(Object.entries({...headers,...entry.headers}).filter(([,value])=>value!==undefined));
+    const response=await navigationRequest(app.url+entry.path,requestHeaders,entry.method);
+    assert.equal(response.status,403,JSON.stringify(entry));
+  }
+  assert.equal((await workspace(app)).revision,13);
+  assert.deepEqual((await (await fetch(app.url+'/api/projects')).json()).projects.map(project=>project.id),['mmorpg']);
+});
 
 test('migration preserves the old workspace and files, is idempotent, and keeps all business APIs project-qualified',async t=>{
   const f=await fixture(t),app=await f.start();
@@ -51,7 +100,7 @@ test('migration preserves the old workspace and files, is idempotent, and keeps 
 test('independent projects isolate the same category, ID, PNG filename, enums, drops, save revisions and exports',async t=>{
   const f=await fixture(t),app=await f.start();
   assert.equal((await json(app.url+'/api/projects','POST',{id:'sa',name:'石器时代'})).status,201);
-  const empty=await workspace(app,'sa');assert.deepEqual(empty.workspace,normalizeWorkspace({categories:[],enums:[],tables:{},chestAppearances:[]}));assert.equal(empty.revision,1);
+  const empty=await workspace(app,'sa');assert.deepEqual(empty.workspace,normalizeWorkspace({categories:[],enums:[],tables:{}}));assert.equal(empty.revision,1);
   await mkdir(join(f.root,'projects','sa','assets','装备'));
   const other=Uint8Array.from([...bytes,99]);await writeFile(join(f.root,'projects','sa','assets','装备','草帽.png'),other);
   const original=await workspace(app),sa=structuredClone(seed.workspace);sa.tables.equipment.rows[0]={id:1,name:'SA 帽子',icon:'装备/草帽.png'};
@@ -70,7 +119,7 @@ test('independent projects isolate the same category, ID, PNG filename, enums, d
   assert.equal((await json(api(app,'sa','/export'),'POST',{scope:'equipment',filename:'../escape.yaml',expectedRevision:2})).status,400);
   assert.equal((await json(api(app,'sa','/export'),'POST',{scope:'equipment',filename:'asset-categories.yaml',expectedRevision:1})).status,409);
   const {enableDrops}=await import('../public/editor/drops.mjs'),withDrops=enableDrops(sa,{start:100,end:109},{start:110,end:119});
-  withDrops.enums=[{key:'quality',label:'SA 品质',items:[{key:'undefined',label:'未定义',value:0}]}];
+  withDrops.enums.push({key:'quality',label:'SA 品质',items:[{key:'undefined',label:'未定义',value:0}]});
   assert.equal((await json(api(app,'sa'),'PUT',{workspace:withDrops,expectedRevision:2})).status,200);
   const untouched=await workspace(app);assert.deepEqual(untouched.workspace.enums,[]);assert.equal(untouched.workspace.categories.length,1);
   assert.equal((await json(api(app,'sa'),'PUT',{workspace:sa,expectedRevision:2})).status,409);

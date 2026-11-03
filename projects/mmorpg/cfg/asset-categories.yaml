@@ -20,3 +20,23 @@ categories:
     id_start: 3000000
     id_end: 3999999
     description: "按权重选择一个条目, 发放该条目的全部奖励."
+  - key: "hero"
+    name: "英雄"
+    id_start: 4000000
+    id_end: 4999999
+    description: "英雄资产"
+  - key: "weapon"
+    name: "武器"
+    id_start: 5000000
+    id_end: 5999999
+    description: "武器资产"
+  - key: "task"
+    name: "任务"
+    id_start: 6000000
+    id_end: 6999999
+    description: "任务资产"
+  - key: "medal"
+    name: "勋章"
+    id_start: 7000000
+    id_end: 7999999
+    description: "勋章资产"

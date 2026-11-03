@@ -1,12 +1,13 @@
+import {chestEnum} from './chest-fixture.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {rewardAssets,rewardListHtml} from '../public/editor/rewards.mjs';
 const picker=await import('../public/editor/reward-picker.mjs').catch(()=>({}));
 const icon='images/'+'a'.repeat(64)+'.png';
-const workspace={chestAppearances:[{id:1,name:'木箱',icon:'icons/chests/wood.png'}],categories:[{key:'base',name:'基础数值'},{key:'equipment',name:'装备'},{key:'drop_package',name:'掉落包',system:'drop_package'},{key:'drop_entry',name:'掉落条目',system:'drop_entry'}],tables:{
+const workspace={enums:[chestEnum()],categories:[{key:'base',name:'基础数值'},{key:'equipment',name:'装备'},{key:'drop_package',name:'掉落包',system:'drop_package'},{key:'drop_entry',name:'掉落条目',system:'drop_entry'}],tables:{
   base:{fields:[{key:'icon',type:'png'}],rows:[{id:0,name:'金币',icon}]},
   equipment:{fields:[{key:'icon',type:'png'}],rows:[{id:1000000,name:'草帽',icon},{id:1000001,name:'布衣',icon:null}]},
-  drop_package:{fields:[],rows:[{id:2000000,name:'包',chest_appearance_id:1}]},
+  drop_package:{fields:[],rows:[{id:2000000,name:'包',chest_type:1}]},
   drop_entry:{fields:[],rows:[{id:2100000,package_id:2000000}]}
 }};
 test('reward choices include asset PNGs and package appearance icons, keep zero IDs and exclude drop entries',()=>{

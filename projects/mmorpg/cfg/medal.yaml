@@ -1,0 +1,12 @@
+version: 1
+category: "medal"
+fields:
+  - key: "id"
+    label: "ID"
+    type: "uint32"
+    required: true
+  - key: "name"
+    label: "名称"
+    type: "string"
+    required: true
+rows: []

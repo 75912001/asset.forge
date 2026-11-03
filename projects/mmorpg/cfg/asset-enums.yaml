@@ -27,18 +27,23 @@ enums:
       - key: "wood"
         label: "木箱"
         value: 1
+        icon: "icons/chests/wood.png"
       - key: "iron"
         label: "铁箱"
         value: 2
+        icon: "icons/chests/iron.png"
       - key: "copper"
         label: "铜箱"
         value: 3
+        icon: "icons/chests/copper.png"
       - key: "silver"
         label: "银箱"
         value: 4
+        icon: "icons/chests/silver.png"
       - key: "gold"
         label: "金箱"
         value: 5
+        icon: "icons/chests/gold.png"
   - key: "equipment_type"
     label: "装备类型"
     items:

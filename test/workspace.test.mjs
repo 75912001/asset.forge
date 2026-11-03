@@ -38,7 +38,7 @@ test('invalid values cannot replace an already saved workspace',()=>{
 });
 test('exports a category file plus each category table and rejects filename collisions',()=>{
   const files=workspaceFiles(populated(),'asset-categories.yaml');
-  assert.deepEqual(files.map(file=>file.name),['asset-categories.yaml','asset-enums.yaml','chest-appearances.yaml','hero-motion.yaml','role.yaml']);
-  assert.match(files[4].content,/amount: 18446744073709551615\n/);
+  assert.deepEqual(files.map(file=>file.name),['asset-categories.yaml','asset-enums.yaml','hero-motion.yaml','role.yaml']);
+  assert.match(files[3].content,/amount: 18446744073709551615\n/);
   assert.throws(()=>workspaceFiles(populated(),'ROLE.yaml'),/冲突/);
 });

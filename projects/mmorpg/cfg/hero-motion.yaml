@@ -1,0 +1,50 @@
+version: 1
+amplitude: 0.35
+slots:
+  head:
+    x: 146
+    y: 108
+    size: 184
+  weapon:
+    x: 52
+    y: 154
+    size: 100
+actions:
+  walk:
+    duration: 0.5
+    head:
+      dx: 0
+      dy: -1.8
+      sx: 0.007
+      sy: -0.007
+    weapon:
+      dx: 0.6
+      dy: 2
+      sx: 0
+      sy: 0
+  attack:
+    duration: 0.7
+    head:
+      dx: -0.8
+      dy: 0
+      sx: 0
+      sy: -0.008
+    weapon:
+      dx: -5
+      dy: -1.2
+      sx: 0.04
+      sy: 0.025
+  hit:
+    duration: 0.55
+    head:
+      dx: 1.8
+      dy: 0
+      sx: -0.012
+      sy: 0.008
+    weapon:
+      dx: 2
+      dy: 0
+      sx: 0
+      sy: 0
+    recoil: 3
+    flash: 0.3

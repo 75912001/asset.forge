@@ -1,3 +1,4 @@
+import {chestEnum} from './chest-fixture.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {normalizeWorkspace,workspaceFiles,replaceCategories} from '../public/editor/workspace.mjs';
@@ -6,33 +7,48 @@ import {rewardAssets,rollRewards} from '../public/editor/rewards.mjs';
 import {pngReferences} from '../public/editor/png.mjs';
 
 function fixture() {
-  const w=enableDrops({categories:[{key:'item',name:'道具',start:1,end:99}],enums:[],chestAppearances:[{id:1,name:'木箱',icon:'chests/wood.png'},{id:2,name:'金箱',icon:'chests/gold.png'}],tables:{item:{fields:[{key:'id',label:'ID',type:'uint32',required:true}],rows:[{id:1}]}}},{start:200,end:209},{start:210,end:299});
-  return saveDropPackage(w,{id:200,name:'新手包',selection_mode:'weight',chest_appearance_id:1},[{id:210,package_id:200,weight:1,probability:10000,rewards:[{asset_id:1,count:1,probability:10000}]}]);
+  const w=enableDrops({categories:[{key:'item',name:'道具',start:1,end:99}],enums:[{...chestEnum('chests/wood.png'),items:[...chestEnum('chests/wood.png').items,{key:'gold',label:'金箱',value:2,icon:'chests/gold.png'}]}],tables:{item:{fields:[{key:'id',label:'ID',type:'uint32',required:true}],rows:[{id:1}]}}},{start:200,end:209},{start:210,end:299});
+  return saveDropPackage(w,{id:200,name:'新手包',selection_mode:'weight',chest_type:1},[{id:210,package_id:200,weight:1,probability:10000,rewards:[{asset_id:1,count:1,probability:10000}]}]);
 }
 
-test('appearance records survive normalization independently of asset IDs and category edits',()=>{
+test('宝箱枚举图标随归一化和分类编辑保留, 不占用资产 ID',()=>{
   const raw=fixture(),before=structuredClone(raw),saved=normalizeWorkspace(raw);
-  assert.deepEqual(saved.chestAppearances,[{id:1,name:'木箱',icon:'chests/wood.png'},{id:2,name:'金箱',icon:'chests/gold.png'}]);
-  assert.equal(saved.tables.drop_package.rows[0].chest_appearance_id,1);
+  assert.deepEqual(saved.enums,raw.enums);
+  assert.equal(saved.tables.drop_package.rows[0].chest_type,1);
   assert.deepEqual(normalizeWorkspace(JSON.parse(JSON.stringify(saved))),saved);
-  assert.deepEqual(replaceCategories(saved,saved.categories).chestAppearances,saved.chestAppearances);
+  assert.deepEqual(replaceCategories(saved,saved.categories).enums,saved.enums);
   assert.deepEqual(raw,before,'normalization must not modify the input');
 });
 
-test('appearance definitions reject duplicate or invalid IDs, empty names and non-PNG references',()=>{
-  for(const appearance of [{id:-1,name:'木箱',icon:'wood.png'},{id:4294967296,name:'木箱',icon:'wood.png'},{id:1,name:' ',icon:'wood.png'},{id:1,name:'木箱',icon:'../wood.png'},{id:1,name:'木箱',icon:''}]) {
-    const w=fixture();w.chestAppearances=[appearance];assert.throws(()=>normalizeWorkspace(w));
+test('宝箱枚举拒绝非法数值、空名称、无效图标及重复值',()=>{
+  for(const patch of [{value:-1},{value:4294967296},{label:' '},{icon:'../wood.png'},{icon:''}]) {
+    const w=fixture();Object.assign(w.enums[0].items[1],patch);assert.throws(()=>normalizeWorkspace(w));
   }
-  const w=fixture();w.chestAppearances.push({...w.chestAppearances[0]});assert.throws(()=>normalizeWorkspace(w),/重复/);
+  const w=fixture();w.enums[0].items.push({...w.enums[0].items[1]});assert.throws(()=>normalizeWorkspace(w),/重复/);
+});
+test('掉落包必须引用有效宝箱类型, 删除或改值不能产生悬空引用',()=>{
+  for(const value of [undefined,'',null,999]){const w=fixture();w.tables.drop_package.rows[0].chest_type=value;assert.throws(()=>normalizeWorkspace(w),/宝箱类型/);}
+  const removed=fixture();removed.enums[0].items.splice(1,1);assert.throws(()=>normalizeWorkspace(removed),/宝箱类型/);
+  const changed=fixture();changed.enums[0].items[1].value=3;assert.throws(()=>normalizeWorkspace(changed),/宝箱类型/);
+  const core=fixture();core.tables.drop_package.fields=core.tables.drop_package.fields.filter(f=>f.key!=='chest_type');assert.throws(()=>normalizeWorkspace(core),/核心/);
 });
 
-test('every package requires an existing appearance and protects appearance deletion and ID changes',()=>{
-  for(const id of [undefined,'',null,999]) {
-    const w=fixture();w.tables.drop_package.rows[0].chest_appearance_id=id;assert.throws(()=>normalizeWorkspace(w),/外观/);
+test('宝箱范围类型接受内部与边界值, 保存和导出保留实际数值',()=>{
+  const w=fixture();Object.assign(w.enums[0].items[1],{value:10,max:20});w.enums[0].items[2].value=30;
+  for(const value of [10,15,20]) {
+    w.tables.drop_package.rows[0].chest_type=value;
+    const saved=normalizeWorkspace(w);
+    assert.equal(saved.tables.drop_package.rows[0].chest_type,value);
+    assert.equal(normalizeWorkspace(JSON.parse(JSON.stringify(saved))).tables.drop_package.rows[0].chest_type,value);
+    assert.match(workspaceFiles(saved,'asset-categories.yaml').find(file=>file.name==='drop_package.yaml').content,new RegExp(`chest_type: ${value}\\n`));
   }
-  const removed=fixture();removed.chestAppearances.shift();assert.throws(()=>normalizeWorkspace(removed),/外观.*1|1.*外观/);
-  const changed=fixture();changed.chestAppearances[0].id=3;assert.throws(()=>normalizeWorkspace(changed),/外观/);
-  const core=fixture();core.tables.drop_package.fields=core.tables.drop_package.fields.filter(f=>f.key!=='chest_appearance_id');assert.throws(()=>normalizeWorkspace(core),/外观|核心/);
+  for(const value of [0,9,21]){w.tables.drop_package.rows[0].chest_type=value;assert.throws(()=>normalizeWorkspace(w),/宝箱类型/);}
+});
+
+test('奖励宝箱使用范围内部数值对应的枚举图标',()=>{
+  const w=fixture();Object.assign(w.enums[0].items[1],{value:10,max:20});w.enums[0].items[2].value=30;
+  w.tables.drop_package.rows[0].chest_type=15;
+  assert.equal(rewardAssets(w).find(row=>row.id===200).icon,'chests/wood.png');
 });
 
 test('all combinations need guaranteed rewards, including zero-chance combinations',()=>{
@@ -57,7 +73,7 @@ test('probability packages need a guaranteed combination while weight packages d
 });
 
 test('packages are rewards with inherited appearance icons and are not recursively opened',()=>{
-  const w=fixture();w.tables.drop_package.rows.push({id:201,name:'活动包',selection_mode:'weight',chest_appearance_id:1});
+  const w=fixture();w.tables.drop_package.rows.push({id:201,name:'活动包',selection_mode:'weight',chest_type:1});
   w.tables.drop_entry.rows.push({id:211,package_id:201,weight:1,probability:10000,rewards:[{asset_id:200,count:2,probability:10000}]});
   const saved=normalizeWorkspace(w),choices=rewardAssets(saved);
   assert.deepEqual(choices.map(row=>row.id),[1,200,201]);
@@ -68,11 +84,11 @@ test('packages are rewards with inherited appearance icons and are not recursive
   const appearanceReward=structuredClone(saved);appearanceReward.tables.drop_entry.rows[1].rewards[0].asset_id=2;assert.throws(()=>normalizeWorkspace(appearanceReward),/2/);
 });
 
-test('appearance icons participate in PNG existence checks and export with a dedicated configuration file',()=>{
+test('宝箱图片参与资源校验并随枚举导出',()=>{
   const saved=normalizeWorkspace(fixture());
   assert.deepEqual(pngReferences(saved),['chests/wood.png','chests/gold.png']);
-  const files=workspaceFiles(saved,'asset-categories.yaml'),appearances=files.find(file=>file.name==='chest-appearances.yaml');
-  assert.ok(appearances);assert.match(appearances.content,/id: 1/);assert.match(appearances.content,/icon: "chests\/wood.png"/);
-  assert.match(files.find(file=>file.name==='drop_package.yaml').content,/chest_appearance_id: 1/);
-  assert.throws(()=>workspaceFiles(saved,'chest-appearances.yaml'),/冲突/);
+  const files=workspaceFiles(saved,'asset-categories.yaml'),enums=files.find(file=>file.name==='asset-enums.yaml');
+  assert.match(enums.content,/icon: "chests\/wood.png"/);
+  assert.match(files.find(file=>file.name==='drop_package.yaml').content,/chest_type: 1/);
+  assert.equal(files.some(file=>file.name==='chest-appearances.yaml'),false);
 });

@@ -37,7 +37,7 @@ fields:
 rows:
   - id: 1000000
     name: "草帽"
-    icon: null
+    icon: "icons/weapons/倚天剑.png"
     atk: 0
     def: 1
     slot: 1
@@ -45,7 +45,7 @@ rows:
     crit_dmg: 0
   - id: 1000001
     name: "布衣"
-    icon: null
+    icon: "icons/weapons/雌雄双股剑.png"
     atk: 0
     def: 2
     slot: 2
@@ -53,7 +53,7 @@ rows:
     crit_dmg: 0
   - id: 1000002
     name: "短裤"
-    icon: null
+    icon: "icons/weapons/青龙偃月刀.png"
     atk: 0
     def: 3
     slot: 3
@@ -61,7 +61,7 @@ rows:
     crit_dmg: 0
   - id: 1000003
     name: "草鞋"
-    icon: null
+    icon: "icons/weapons/丈八蛇矛.png"
     atk: 0
     def: 4
     slot: 4

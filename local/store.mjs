@@ -23,7 +23,6 @@ export function openStore(filename,root,seed,{initialize=true}={}) {
     const add=(kind,key,position,value)=>records.push([LOCAL_OWNER,kind,key,position,JSON.stringify(value)]);
     workspace.categories.forEach((cat,index)=>{add('category',cat.key,index,cat);add('table',cat.key,index,workspace.tables[cat.key].fields);workspace.tables[cat.key].rows.forEach((row,position)=>add('row',`${cat.key}:${row.id}`,position,row));});
     workspace.enums.forEach((entry,index)=>add('enum',entry.key,index,entry));
-    workspace.chestAppearances.forEach((entry,index)=>add('chest_appearance',String(entry.id),index,entry));
     // 旧项目读取默认值即可, 显式提供配置的种子才写入动作记录.
     if(seed?.workspace?.heroMotion!==undefined)add('hero_motion','shared',0,workspace.heroMotion);
     sqlite.exec('BEGIN');

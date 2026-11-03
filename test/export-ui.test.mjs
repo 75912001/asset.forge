@@ -81,7 +81,7 @@ test('selects a directory before requesting write access and writes only after a
     queryPermission:async()=>permission,
     requestPermission:async options=>{assert.equal(options.mode,'readwrite');requests++;return permission;},
     getFileHandle:async(filename,options)=>{
-      assert.ok(['selected-export.yaml','asset-enums.yaml','chest-appearances.yaml','hero-motion.yaml','role.yaml','item.yaml','skill.yaml','level.yaml'].includes(filename)); assert.equal(options.create,true);
+      assert.ok(['selected-export.yaml','asset-enums.yaml','hero-motion.yaml','role.yaml','item.yaml','skill.yaml','level.yaml'].includes(filename)); assert.equal(options.create,true);
       written.push(filename);
       return {createWritable:async()=>{
         const file=await open(join(folder,filename),'w');
@@ -105,7 +105,7 @@ test('selects a directory before requesting write access and writes only after a
     permission='granted';
     await elements.get('export-now').listeners.click();
     assert.ok(requests>=1);
-    assert.deepEqual(written,['selected-export.yaml','asset-enums.yaml','chest-appearances.yaml','hero-motion.yaml','role.yaml','item.yaml','skill.yaml','level.yaml']);
+    assert.deepEqual(written,['selected-export.yaml','asset-enums.yaml','hero-motion.yaml','role.yaml','item.yaml','skill.yaml','level.yaml']);
     assert.match(await readFile(target,'utf8'),/id_start: 10000\n/);
     assert.equal(elements.get('export-error').hidden,true);
   } finally { for(const file of written)await unlink(join(folder,file)).catch(()=>{});await rmdir(folder); }

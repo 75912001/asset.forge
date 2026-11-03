@@ -47,6 +47,7 @@ yarn-error.log*
 !/.agents/skills/create-character/
 !/.agents/skills/create-icon/
 !/.agents/skills/create-weapon/
+!/.agents/skills/push-git/
 /.codex/
 /outputs/
 /work/
@@ -64,3 +65,4 @@ yarn-error.log*
 /projects/*/*.sqlite-journal
 # 迁移前快照仅保存在本机, 当前项目数据库仍纳入版本管理.
 /projects/*/backups/before-chest-appearances-*.sqlite
+/projects/*/backups/before-chest-types-*/

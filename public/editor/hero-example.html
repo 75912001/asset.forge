@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>英雄动作 · 网页接入示例</title><link rel="stylesheet" href="/editor/style.css"><link rel="stylesheet" href="/editor/heroes.css"><style>body{display:block;max-width:860px;margin:40px auto;padding:0 24px}.example-stage{max-width:420px;margin:20px auto}.example-controls{justify-content:center}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#edf1e8;padding:20px;border-radius:12px;font-size:12px;line-height:1.8}h1{font-size:26px}.example-status{font-size:13px;line-height:1.8}</style></head>
+<body>
+<div class="eyebrow">SHARED HERO RUNTIME</div><h1>同一套动作, 直接用于网页.</h1><p>本页读取当前项目已保存的参数, 与调参面板共用动画和绘制模块. 保存新参数后刷新本页.</p><p id="example-status" class="example-status" role="status">正在读取配置和资源...</p>
+<div class="hero-stage-wrap example-stage"><canvas id="example-stage" width="512" height="512" aria-label="网页英雄动作"></canvas></div>
+<div id="example-controls" class="hero-actions example-controls"><button class="button secondary" data-action="idle">静止</button><button class="button secondary" data-action="walk-left">左走</button><button class="button secondary" data-action="walk-right">右走</button><button class="button secondary" data-action="attack">攻击</button><button class="button secondary" data-action="hit">受伤</button></div>
+<div class="hero-toolbar example-controls"><button id="example-pause" class="button secondary">暂停</button><button id="example-reload" class="button secondary">重新读取已保存参数</button><button id="example-check" class="button secondary">检查同帧一致性</button></div><p id="example-check-result" class="example-status" role="status"></p>
+<h2>接入代码</h2><p>资源地址由网页提供. 从导出的 hero-motion.yaml 解析配置对象, 或由服务端提供相同对象. 场景移动在外层控制.</p>
+<pre>import {createHeroMotion, drawHero} from './hero-runtime.mjs';
+
+const motion = createHeroMotion(savedConfig);
+motion.setAction('attack');
+// 每帧传入秒数, 不使用固定帧数驱动.
+motion.advance(deltaSeconds);
+ctx.clearRect(0, 0, 256, 256);
+drawHero(ctx, {head: decodedHead, weapon: decodedWeapon}, motion.snapshot());</pre>
+<script type="module" src="/editor/hero-example.mjs"></script>
+</body></html>
