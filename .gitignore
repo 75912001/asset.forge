@@ -46,6 +46,7 @@ yarn-error.log*
 /.agents/skills/*
 !/.agents/skills/create-character/
 !/.agents/skills/create-icon/
+!/.agents/skills/push-git/
 /.codex/
 /outputs/
 /work/

@@ -6,6 +6,7 @@
 | --- | --- | --- |
 | create-character | 创建 Tiny Kingdom 式胶囊小人角色, 包括单角色、批量独立角色图及提示词. 不用于写实立绘、纯人物小传或角色代码. | [.agents/skills/create-character/SKILL.md](.agents/skills/create-character/SKILL.md) |
 | create-icon | 按参考图创建粗黑描边, 圆润造型和鲜亮色块的技能, 道具与资产图标, 支持单张, 批量独立图及提示词, 默认交付 128 x 128 透明 PNG. | [.agents/skills/create-icon/SKILL.md](.agents/skills/create-icon/SKILL.md) |
+| 推送git (push-git) | 提交并推送本项目代码, 资源与已保存数据, 在独立副本中验证 clone 后可运行. | [.agents/skills/push-git/SKILL.md](.agents/skills/push-git/SKILL.md) |
 
 技能中的资源路径相对于该技能目录解析. 图像生成使用当前 AI 工具实际可用的能力; 不具备出图能力时按技能交付提示词并说明限制, 不声称已生成图片.
 

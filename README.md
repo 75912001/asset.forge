@@ -8,6 +8,7 @@
 
 - [create-character: 创建角色](.agents/skills/create-character/SKILL.md): Tiny Kingdom 式胶囊小人, 支持单角色、批量独立角色图及提示词. 技能自带 4 张风格参考图, 默认交付 256 x 256 透明 PNG.
 - [create-icon: 创建图标](.agents/skills/create-icon/SKILL.md): 覆盖技能, 道具和资产图标, 以第 5 张参考图的渲染为主, 其余 4 张补充技能符号设计. 技能自带全部 5 张参考图, 默认每个图标一个独立文件并保留提示词, 交付 128 x 128 透明 PNG, 不带灰色圆角框, 锁定格或背景.
+- [push-git: 推送git](.agents/skills/push-git/SKILL.md): 将本项目代码, 资源和已保存数据提交并推送到 Git, 校验 SQLite 与 YAML, 在不含 node_modules 的独立副本中验证编辑器, 项目数据和 PNG 可读取. 可直接要求: `使用推送git技能, 把本项目当前资源和已保存数据提交并推送.`
 - 在任意能读取项目文件的 AI 工具中, 可直接要求: `请先读取 .agents/skills/create-character/SKILL.md, 再按该技能创建一个关羽角色.` 引用图片的路径相对于技能目录解析.
 - 图标调用示例: `请先读取 .agents/skills/create-icon/SKILL.md, 再创建火球术, 生命药水和金币图标, 每个图标一个独立文件并保留提示词.` 仅需提示词时在请求中明确说明.
 - Codex 从项目的 `.agents/skills/` 自动发现技能. 如果迁移后选择器仍显示旧路径, 重启 Codex 后重新选择技能. 其他工具未自动读取 AGENTS.md 或未发现技能时, 使用上述显式路径调用. 实际出图需要工具具备图像生成及参考图输入能力, 否则按技能交付提示词并说明限制.
@@ -53,6 +54,8 @@ clone 仓库后, 安装 Node.js 22.13+, 双击 start.cmd 即可. 提交最新项
 共享 AI 技能及原始风格参考保存在 `.agents/skills/`. 图标试作及提示词保存在 `output/icon-skill-preview-20261102/`, 提示词中的参考图路径相对于仓库根目录解析. 这些文件随仓库迁移; 实际继续出图仍需要所用 AI 工具支持图像生成.
 
 未保存的页面草稿不在数据库中. 提交最新数据前先保存页面, 再运行 stop.cmd 停止服务, 确保 SQLite 日志已合并后再提交. 日志、进程号和 SQLite 临时文件不纳入 Git.
+
+使用"推送git"技能时, 会检查新增文件和忽略规则, 保留每个项目的 project.json, workspace.sqlite, assets/ 和 cfg/, 并包含共享技能及其参考资源. 验证脚本使用 Node.js 内置模块, 在仓库根目录执行 `node .agents/skills/push-git/scripts/verify-clone.mjs <独立副本目录>`. 请对暂存区导出的副本或新 clone 执行, 不对正在编辑的工作区运行; 脚本会在该副本启动临时服务, 检查页面, 静态资源, 数据库, YAML 和 PNG, 完成后关闭服务. 本地截图, 运行日志, 迁移前备份, 密钥及依赖缓存继续按忽略规则处理.
 
 ## 数据和备份
 

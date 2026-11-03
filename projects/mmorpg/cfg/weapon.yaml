@@ -1,0 +1,16 @@
+version: 1
+category: "weapon"
+fields:
+  - key: "id"
+    label: "ID"
+    type: "uint32"
+    required: true
+  - key: "name"
+    label: "名称"
+    type: "string"
+    required: true
+  - key: "icon"
+    label: "图标"
+    type: "png"
+    required: false
+rows: []
