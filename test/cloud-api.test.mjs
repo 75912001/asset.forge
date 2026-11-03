@@ -43,7 +43,7 @@ test('workspace APIs require login and do not trust an owner supplied in the pay
   assert.equal((await call(db,{user:'user-b'})).data.workspace,null);
   assert.equal((await call(db,{user:'user-b',method:'POST',path:'/api/workspace/migrate',body:{workspace:workspace(),expectedRevision:0,requestId:'account-switch',expectedUserId:'user-a'}})).status,409);
   assert.equal((await call(db,{user:'user-b'})).data.workspace,null,'an account switch must not copy the previous account workspace');
-  assert.deepEqual((await call(db)).data.workspace,workspace());
+  assert.deepEqual((await call(db)).data.workspace,normalizeWorkspace(workspace()));
 });
 test('migration is explicit, preserves exact values, and retries do not overwrite cloud data',async()=>{
   assert.equal(typeof api.handleWorkspaceRequest,'function','cloud API is missing');const db=database();
@@ -65,10 +65,10 @@ test('two saves from the same revision yield one commit and one conflict without
   const a=workspace(),b=workspace();a.categories[0].name='电脑A';b.categories[0].name='电脑B';a.tables.equipment.rows[0].slot=1;
   const responses=await Promise.all([a,b].map(workspace=>call(db,{method:'PUT',body:{workspace,expectedRevision:1}})));
   assert.deepEqual(responses.map(r=>r.status).sort(),[200,409]);
-  const saved=await call(db);assert.equal(saved.data.revision,2);assert.deepEqual(saved.data.workspace,a);
+  const saved=await call(db);assert.equal(saved.data.revision,2);assert.deepEqual(saved.data.workspace,normalizeWorkspace(a));
   const invalid=workspace();invalid.tables.equipment.rows[0].slot=7;
   assert.equal((await call(db,{method:'PUT',body:{workspace:invalid,expectedRevision:2}})).status,400);
-  assert.deepEqual((await call(db)).data.workspace,a);
+  assert.deepEqual((await call(db)).data.workspace,normalizeWorkspace(a));
 });
 test('writes reject cross-origin requests, missing revisions, and more than ten thousand rows',async()=>{
   assert.equal(typeof api.handleWorkspaceRequest,'function','cloud API is missing');const db=database();

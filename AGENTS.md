@@ -4,10 +4,13 @@
 
 | 技能 | 适用任务 | 入口 |
 | --- | --- | --- |
-| create-character | 创建 Tiny Kingdom 式胶囊小人角色, 包括单角色、批量独立角色图及提示词. 不用于写实立绘、纯人物小传或角色代码. | [.agents/skills/create-character/SKILL.md](.agents/skills/create-character/SKILL.md) |
+| create-character (创建英雄) | 创建或编辑 Tiny Kingdom 风格的头部英雄, 默认朝左轻微侧向, 支持左右移动时的整体镜像和程序动画. 交付 256 x 256 透明 PNG, 保存至当前项目 assets/heroes/, 武器另用独立 icon, 支持单张, 批量及提示词. 不用于写实立绘, 纯人物小传或角色代码. | [.agents/skills/create-character/SKILL.md](.agents/skills/create-character/SKILL.md) |
 | create-icon | 按参考图创建粗黑描边, 圆润造型和鲜亮色块的技能, 道具与资产图标, 支持单张, 批量独立图及提示词, 默认交付 128 x 128 透明 PNG. | [.agents/skills/create-icon/SKILL.md](.agents/skills/create-icon/SKILL.md) |
+| create-weapon (创建武器) | 创建刀, 剑, 斧, 锤, 枪矛, 戟及弓弩的独立 128 x 128 透明 PNG. 默认主轴左上到右下, 单刃朝左下, 弓身朝左下且弓弦在右上侧, 支持单张, 批量及提示词. | [.agents/skills/create-weapon/SKILL.md](.agents/skills/create-weapon/SKILL.md) |
 
 技能中的资源路径相对于该技能目录解析. 图像生成使用当前 AI 工具实际可用的能力; 不具备出图能力时按技能交付提示词并说明限制, 不声称已生成图片.
+
+三个创建技能的新资源统一使用中文交付名称和 PNG 文件名, 例如 `关羽.png`, `青龙偃月刀.png`, `火球术.png`, 不默认使用拼音或英文名. 同名且未要求覆盖时添加 `-2`, `-3` 等版本后缀, 提示词记录同步实际文件名. 中文命名不表示在图片中添加文字, 也不自动重命名已有文件或修改引用.
 
 新增或调整项目技能时, 同步维护此表和 README 中的技能说明及 Git 忽略规则, 确保技能文件纳入版本管理. 保持 `.agents/skills/` 为共享源, 避免在不同工具的配置目录复制多份后分别维护.
 
@@ -18,4 +21,10 @@
 | 图标 (icon) | 128 x 128 像素 | PNG (`.png`) |
 | 角色 | 256 x 256 像素 | PNG (`.png`) |
 
+角色默认只包含头部及头饰, 不含身体, 手或武器. 具体冷兵器使用 create-weapon, 其他图标使用 create-icon. 武器属于独立的 128 x 128 图标资源, 不附带手或人物. 显示时将头像与装备图标放在固定挂点, 更换装备只替换图标资源, 不改动角色图片. 挂点由使用方配置, 不包含在 PNG 中.
+
+英雄基准图默认朝左轻微侧向, 向右时整体镜像头像, 武器和挂点. 移动由场景水平位移加小幅局部律动表现, 不依赖重新生成逐帧头像. 明确要求正面展示时遵从要求, 但不保证对称正面图镜像后可辨朝向.
+
 生成或导出后检查文件的实际格式和宽高, 不仅依靠文件扩展名或提示词声明.
+
+头像保存至 `projects/<项目标识>/assets/heroes/` 直接子级, 文件名作为英雄浏览标识. 武器建议保存在同一项目的 `assets/icons/weapons/`. 英雄动作面板与网页共用 `public/editor/hero-runtime.mjs`, 使用同一份已保存的 `heroMotion` 配置, 不另写一套动作或挂点算法. 具体接口与导出约定见 [docs/hero-motion.md](docs/hero-motion.md).

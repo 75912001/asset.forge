@@ -2,8 +2,9 @@ import {FIELD_TYPES,emptyAssetTable,normalizeAssetTable,nextAssetId,changeAssetF
 
 import {isDropCategory,isDropCore} from './drops.mjs';
 import {rewardAssets,rewardListHtml,updateRewardProbability} from './rewards.mjs';
-import {pngCellHtml} from './png.mjs';
+import {pngCellHtml,normalizePngReference} from './png.mjs';
 import {openRewardPicker} from './reward-picker.mjs';
+import {enumItemForValue} from './enums.mjs';
 
 export function mountAssetEditor({getWorkspace,commit,onDirty,onOpen,onExport,onDownload,notify,onOpenDrops=()=>{},canEdit=()=>true,onSelectPng}) {
   const $=id=>document.getElementById(id);
@@ -12,6 +13,13 @@ export function mountAssetEditor({getWorkspace,commit,onDirty,onOpen,onExport,on
   let key=null,draft=emptyAssetTable(),dirty=false,tab='data',uploading=false;
   let draggedField=null;
   const category=()=>getWorkspace().categories.find(row=>row.key===key);
+  const isEquipmentName=field=>key==='equipment'&&field.key==='name'&&field.type==='string';
+  function setPng(record,field,value) {
+    const path=value===null?null:normalizePngReference(value);
+    // 主图标与装备名称作为同一次草稿修改, 其他 PNG 字段不改变名称.
+    if(field.key==='icon'&&draft.fields.some(isEquipmentName))record.name=path?path.split('/').at(-1).slice(0,-4):'';
+    record[field.key]=path;
+  }
   function error(message='') {$('asset-error').textContent=message;$('asset-error').hidden=!message;}
   function setDirty(value) {
     dirty=value;$('asset-save-state').textContent=value?'有未保存的修改':'已保存到本地';
@@ -45,11 +53,15 @@ export function mountAssetEditor({getWorkspace,commit,onDirty,onOpen,onExport,on
         const text=value===null||value===undefined?'':String(value);
         input=`<select ${attrs}>${!['','true','false'].includes(text)?`<option value="${esc(text)}" selected>无效值: ${esc(text)}</option>`:''}<option value="" ${text===''?'selected':''}>—</option><option value="true" ${text==='true'?'selected':''}>true</option><option value="false" ${text==='false'?'selected':''}>false</option></select>`;
       } else if(field.type==='enum') {
-        const items=getWorkspace().enums.find(entry=>entry.key===field.enum)?.items||[];
+        const definition=getWorkspace().enums.find(entry=>entry.key===field.enum),items=definition?.items||[];
         const text=String(value??'');
-        const invalid=text!==''&&!items.some(item=>String(item.value)===text);
-        input=`<select ${attrs} ${invalid?'class="invalid-cell" aria-invalid="true"':''}>${invalid?`<option value="${esc(text)}" selected>无效值: ${esc(text)}</option>`:''}<option value="" ${text===''?'selected':''}>请选择...</option>${items.map(item=>`<option value="${item.value}" ${text===String(item.value)?'selected':''}>${esc(item.label)} · ${item.value}</option>`).join('')}</select>`;
-      } else input=`<input ${attrs} value="${esc(value??'')}" ${field.type!=='string'?'inputmode="numeric" class="mono"':''} placeholder="${field.required?'必填':'—'}" autocomplete="off">`;
+        const matched=text!==''&&/^\d+$/.test(text)&&definition&&enumItemForValue(definition,Number(text));
+        const invalid=text!==''&&!matched;
+        if(items.some(item=>item.max!==undefined)) {
+          const ranges=items.map(item=>`${item.label}: ${item.value}${item.max===undefined?'':`-${item.max}`}`).join(', ');
+          input=`<input ${attrs} value="${esc(text)}" inputmode="numeric" class="mono${invalid?' invalid-cell':''}" ${invalid?'aria-invalid="true"':''} placeholder="请输入枚举范围内的数值" title="${esc(ranges)}"><small>${esc(invalid?'无效值':matched?.label||ranges)}</small>`;
+        }else input=`<select ${attrs} ${invalid?'class="invalid-cell" aria-invalid="true"':''}>${invalid?`<option value="${esc(text)}" selected>无效值: ${esc(text)}</option>`:''}<option value="" ${text===''?'selected':''}>请选择...</option>${items.map(item=>`<option value="${item.value}" ${text===String(item.value)?'selected':''}>${esc(item.label)} · ${item.value}</option>`).join('')}</select>`;
+      } else input=`<input ${attrs} value="${esc(value??'')}" ${isEquipmentName(field)?'readonly':''} ${field.type!=='string'?'inputmode="numeric" class="mono"':''} placeholder="${isEquipmentName(field)?'由图标文件名自动填充':field.required?'必填':'—'}" autocomplete="off">`;
       return `<td>${input}</td>`;
     }).join('')}<td class="row-actions"><button class="table-icon-button" data-remove-record="${index}" ${isDropCategory(cat)?'disabled':''} aria-label="删除第 ${index+1} 行">×</button></td></tr>`).join('');
     $('asset-no-data').hidden=!!draft.rows.length;
@@ -178,7 +190,7 @@ export function mountAssetEditor({getWorkspace,commit,onDirty,onOpen,onExport,on
     if(input.type==='file'||input.dataset.pngClear!==undefined)return;
     if(!canEdit()){render();return;}
     const field=draft.fields[Number(input.dataset.column)];
-    if(isDropCore(category(),field.key))return;
+    if(isDropCore(category(),field.key)||isEquipmentName(field))return;
     if(input.dataset.rewardProperty)draft.rows[Number(input.dataset.record)][field.key][Number(input.dataset.rewardIndex)][input.dataset.rewardProperty]=input.value;
     else draft.rows[Number(input.dataset.record)][field.key]=input.value;
     if(input.dataset.rewardProperty==='probability')updateRewardProbability(input);
@@ -195,13 +207,13 @@ export function mountAssetEditor({getWorkspace,commit,onDirty,onOpen,onExport,on
       if(uploading||!canEdit())return;
       const record=draft.rows[Number(png.dataset.record)],field=draft.fields[Number(png.dataset.column)];
       uploading=true;onDirty();error();
-      try{const selected=await onSelectPng();if(selected!==null&&draft.rows.includes(record)&&draft.fields.includes(field)){record[field.key]=selected;setDirty(true);notify('已选择 PNG, 请保存资产表');}}
+      try{const selected=await onSelectPng();if(selected!==null&&draft.rows.includes(record)&&draft.fields.includes(field)){setPng(record,field,selected);setDirty(true);notify('已选择 PNG, 请保存资产表');}}
       catch(cause){error(cause.message);}finally{uploading=false;setDirty(dirty);render();}return;
     }
     const picker=event.target.closest('[data-reward-picker]');
     if(picker?.dataset.rewardPicker!==undefined){if(canEdit())openRewardPicker(picker,rewardAssets(getWorkspace()));return;}
     const clear=event.target.closest('[data-png-clear]');
-    if(clear){if(!canEdit()||uploading)return;draft.rows[Number(clear.dataset.record)][draft.fields[Number(clear.dataset.column)].key]=null;setDirty(true);error();render();return;}
+    if(clear){if(!canEdit()||uploading)return;setPng(draft.rows[Number(clear.dataset.record)],draft.fields[Number(clear.dataset.column)],null);setDirty(true);error();render();return;}
     const openDrop=event.target.closest('[data-open-drops]');if(openDrop){onOpenDrops(Number(openDrop.dataset.openDrops));return;}
     const reward=event.target.closest('[data-reward-add],[data-reward-remove]');
     if(reward&&(reward.dataset.rewardAdd!==undefined||reward.dataset.rewardRemove!==undefined)){

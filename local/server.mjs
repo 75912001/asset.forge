@@ -75,7 +75,7 @@ export async function createLocalServer({root=projectRoot,dataDir=join(root,'dat
         const response=await handleWorkspaceRequest(new Request(origin+url.pathname.replace(/\/export$/,'/workspace'),{headers:{'oai-authenticated-user-id':LOCAL_OWNER}}),store.db,bucket);
         const current=await response.json();if(!response.ok)return send(response.status,current);
         if(input.expectedRevision!==current.revision)return send(409,{error:'本地数据版本已更新, 请重新加载后导出'});
-        const all=workspaceFiles(current.workspace,input.filename),files=input.scope==='__all__'?all:input.scope==='__enums__'?all.filter(file=>file.name==='asset-enums.yaml'):input.scope==='__chest_appearances__'?all.filter(file=>file.name==='chest-appearances.yaml'):all.filter(file=>file.name===input.scope+'.yaml');
+        const all=workspaceFiles(current.workspace,input.filename),files=input.scope==='__all__'?all:input.scope==='__enums__'?all.filter(file=>file.name==='asset-enums.yaml'):input.scope==='__chest_appearances__'?all.filter(file=>file.name==='chest-appearances.yaml'):input.scope==='__hero_motion__'?all.filter(file=>file.name==='hero-motion.yaml'):all.filter(file=>file.name===input.scope+'.yaml');
         if(!files.length)return send(400,{error:'导出范围无效'});
         const directory=await realpath(config.exportRoot);
         if(directory!==config.exportRoot)return send(400,{error:'导出目录不能使用符号链接'});

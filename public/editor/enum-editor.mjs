@@ -1,4 +1,5 @@
 import {emptyEnum,enumsYaml} from './enums.mjs';
+import {UINT32_MAX} from './model.mjs';
 
 export function mountEnumEditor({getWorkspace,commit,canEdit,onDirty,notify,onExport,onDownload}) {
   const $=id=>document.getElementById(id);
@@ -21,7 +22,7 @@ export function mountEnumEditor({getWorkspace,commit,canEdit,onDirty,notify,onEx
     $('enum-key').value=draft.key;$('enum-label').value=draft.label;
     $('enum-items').innerHTML=draft.items.map((item,index)=>{
       const fixed=item.key==='undefined'&&Number(item.value)===0;
-      return `<tr><td class="row-number">${index+1}</td><td><input data-enum-item="${index}" data-property="key" value="${esc(item.key)}" aria-label="枚举项 ${index+1} 标识" class="mono" ${fixed?'disabled':''}></td><td><input data-enum-item="${index}" data-property="label" value="${esc(item.label)}" aria-label="枚举项 ${index+1} 名称" ${fixed?'disabled':''}></td><td><input data-enum-item="${index}" data-property="value" value="${esc(item.value)}" aria-label="枚举项 ${index+1} 数值" inputmode="numeric" class="mono" ${fixed?'disabled':''}></td><td>${fixed?'<span class="locked-label">固定项</span>':`<button class="table-icon-button" data-remove-enum-item="${index}" aria-label="删除枚举项 ${esc(item.key)}">×</button>`}</td></tr>`;
+      return `<tr><td class="row-number">${index+1}</td><td><input data-enum-item="${index}" data-property="key" value="${esc(item.key)}" aria-label="枚举项 ${index+1} 标识" class="mono" ${fixed?'disabled':''}></td><td><input data-enum-item="${index}" data-property="label" value="${esc(item.label)}" aria-label="枚举项 ${index+1} 名称" ${fixed?'disabled':''}></td><td><input data-enum-item="${index}" data-property="value" value="${esc(item.value)}" aria-label="枚举项 ${index+1} 数值" inputmode="numeric" class="mono" ${fixed?'disabled':''}></td><td><input data-enum-item="${index}" data-property="max" value="${esc(item.max??'')}" aria-label="枚举项 ${index+1} 范围终值" inputmode="numeric" class="mono" placeholder="留空为单值" ${fixed?'disabled':''}></td><td>${fixed?'<span class="locked-label">固定项</span>':`<button class="table-icon-button" data-remove-enum-item="${index}" aria-label="删除枚举项 ${esc(item.key)}">×</button>`}</td></tr>`;
     }).join('');
     const refs=references();
     $('enum-references').textContent=refs.length?`字段引用: ${refs.join(', ')}`:'尚无资产表字段引用此枚举';
@@ -50,7 +51,10 @@ export function mountEnumEditor({getWorkspace,commit,canEdit,onDirty,notify,onEx
   });
   $('enum-add-item').addEventListener('click',()=>{
     if(!canEdit())return;
-    let value=1;while(draft.items.some(item=>Number(item.value)===value))value++;
+    let value=1,occupied;
+    // 按范围终值跳过占用段, 避免逐个扫描百万级枚举值.
+    while(value<=UINT32_MAX&&(occupied=draft.items.find(item=>value>=Number(item.value)&&value<=Number(item.max||item.value))))value=Number(occupied.max||occupied.value)+1;
+    if(value>UINT32_MAX){error('枚举数值已用满');return;}
     let suffix=1;while(draft.items.some(item=>item.key===`item_${suffix}`))suffix++;
     draft.items.push({key:`item_${suffix}`,label:'新枚举项',value});setDirty(true);error();render();
   });

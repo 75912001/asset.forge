@@ -51,6 +51,7 @@ function databaseContents(sqlite) {
     else if(record.kind==='table')workspace.tables[record.entry_key]={fields:value,rows:[]};
     else if(record.kind==='enum')workspace.enums.push(value);
     else if(record.kind==='chest_appearance')workspace.chestAppearances.push(value);
+    else if(record.kind==='hero_motion')workspace.heroMotion=value;
     else if(record.kind==='row')rows.push([record.entry_key.split(':')[0],value]);
     else throw fail('旧数据库包含未知记录类型');
   }

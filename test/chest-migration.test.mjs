@@ -5,6 +5,7 @@ import {mkdtemp,mkdir,writeFile,rm,readFile,readdir,stat} from 'node:fs/promises
 import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
 import {readFileSync,readdirSync} from 'node:fs';
+import {normalizeHeroMotion} from '../public/editor/hero-runtime.mjs';
 const migration=await import('../local/chest-migration.mjs').catch(()=>({}));
 
 async function legacy(t) {
@@ -43,6 +44,15 @@ test('migration refuses a missing source database without creating an empty repl
   const f=await legacy(t),filename=join(f.folder,'missing.sqlite');
   await assert.rejects(migration.migrateChestAppearances({...f,filename}));
   await assert.rejects(stat(filename),{code:'ENOENT'});
+});
+
+test('外观迁移识别并原样保留已有英雄动作记录',async t=>{
+  const f=await legacy(t),motion=normalizeHeroMotion();motion.amplitude=.65;
+  const payload=JSON.stringify(motion);
+  f.db.prepare('INSERT INTO workspace_records(owner_id,kind,entry_key,position,payload) VALUES(?,?,?,?,?)').run('local-workspace','hero_motion','shared',0,payload);
+  assert.equal((await migration.migrateChestAppearances(f)).changed,true);
+  assert.equal(f.db.prepare("SELECT payload FROM workspace_records WHERE kind='hero_motion'").get().payload,payload);
+  assert.equal((await migration.migrateChestAppearances(f)).changed,false);
 });
 
 test('migration rejects invalid nonempty guarantees before changing any data or creating a backup',async t=>{

@@ -39,3 +39,17 @@ enums:
       - key: "gold"
         label: "金箱"
         value: 5
+  - key: "equipment_type"
+    label: "装备类型"
+    items:
+      - key: "undefined"
+        label: "未定义"
+        value: 0
+      - key: "weapon"
+        label: "武器"
+        value: 1
+        max: 999999
+      - key: "helmet"
+        label: "头盔"
+        value: 1000000
+        max: 1999999

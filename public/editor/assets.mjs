@@ -2,6 +2,7 @@ import {UINT32_MAX} from './model.mjs';
 import {normalizeRewards} from './rewards.mjs';
 import {upgradeDropTable} from './drops.mjs';
 import {normalizePngReference} from './png.mjs';
+import {enumItemForValue} from './enums.mjs';
 export const FIELD_TYPES = ['string','uint32','uint64','bool','enum','asset_list','png'];
 export function emptyAssetTable() {
   return {fields:[{key:'id',label:'ID',type:'uint32',required:true}],rows:[]};
@@ -39,7 +40,7 @@ function typedValue(field,value,enums) {
   if (!/^\d+$/.test(text) || typeof value === 'number' && !Number.isSafeInteger(value)) throw new Error('必须为精确的非负整数');
   const integer = BigInt(text);
   if(field.type==='enum') {
-    if(integer>BigInt(UINT32_MAX)||!enums.find(definition=>definition.key===field.enum).items.some(item=>BigInt(item.value)===integer))throw new Error(`数值 ${text} 不属于枚举 ${field.enum}`);
+    if(integer>BigInt(UINT32_MAX)||!enumItemForValue(enums.find(definition=>definition.key===field.enum),Number(integer)))throw new Error(`数值 ${text} 不属于枚举 ${field.enum}`);
     return Number(integer);
   }
   const max = field.type === 'uint32' ? BigInt(UINT32_MAX) : 18446744073709551615n;

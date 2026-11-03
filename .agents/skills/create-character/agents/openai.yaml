@@ -1,3 +1,3 @@
 interface:
-  display_name: "创建角色"
-  short_description: "按原图的胶囊小人造型, 粗黑描边与极简色块, 批量生成每人一张的独立角色图"
+  display_name: "创建英雄"
+  short_description: "创建256像素透明头部英雄, 默认朝左轻微侧向, 支持左右镜像与移动律动, 武器独立"

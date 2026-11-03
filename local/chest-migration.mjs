@@ -26,6 +26,7 @@ export async function migrateChestAppearances({filename,resourcesRoot,backupDir}
       else if(record.kind==='row')rows.push([record.entry_key.split(':')[0],value]);
       else if(record.kind==='enum')workspace.enums.push(value);
       else if(record.kind==='chest_appearance')workspace.chestAppearances.push(value);
+      else if(record.kind==='hero_motion')workspace.heroMotion=value;
       else throw new Error(`未知工作区记录类型: ${record.kind}`);
     }
     for(const [key,row] of rows){if(!workspace.tables[key])throw new Error('项目含孤立资产记录');workspace.tables[key].rows.push(row);}

@@ -16,6 +16,7 @@ class Element {
   addEventListener(type,handler){this.listeners[type]=handler;}
   querySelector(){return null;}
   querySelectorAll(){return [];}
+  getContext(){return {clearRect(){},save(){},restore(){},scale(){}};}
   focus(){}
   remove(){}
 }
@@ -25,8 +26,8 @@ const appearance={id:1,name:'木箱',icon:'chests/wood.png'};
 function fixture(){return {categories:[{key:'item',name:'道具',start:1,end:9,description:''}],tables:{item:{fields:[{key:'id',label:'ID',type:'uint32',required:true}],rows:[{id:1}]}},enums:[],chestAppearances:[{...appearance}]};}
 function input(dataset,value){return {target:{dataset,value}};}
 function click(dataset){return {target:{closest:selector=>selector.includes('data-drop-action')||selector.includes('data-chest-action')?{dataset}:null}};}
-async function browser(t,{local=false,workspace=fixture()}={}) {
-  const names=['document','window','fetch','localStorage','confirm','indexedDB','setTimeout','innerWidth'];
+async function browser(t,{local=false,workspace=fixture(),view=''}={}) {
+  const names=['document','window','fetch','localStorage','confirm','indexedDB','setTimeout','innerWidth','requestAnimationFrame'];
   const previous=Object.fromEntries(names.map(name=>[name,globalThis[name]]));
   t.after(()=>Object.assign(globalThis,previous));
   const values=new Map(),navigation=[],unload=[];let elements,server=workspace,revision=1,offline=false,link;
@@ -35,6 +36,7 @@ async function browser(t,{local=false,workspace=fixture()}={}) {
     if(typeof url!=='string'||!url.startsWith('/api/'))return nativeFetch(url,options);
     if(url==='/api/projects')return Response.json({projects:[{id:'one',name:'项目一'},{id:'two',name:'项目二'}]});
     if(url.endsWith('/local-config'))return new Response('',{status:404});
+    if(url.endsWith('/resources'))return Response.json({root:'assets',paths:[]});
     if(url.endsWith('/workspace')) {
       if(options?.method==='PUT') {
         if(offline)throw new TypeError('offline');
@@ -48,12 +50,14 @@ async function browser(t,{local=false,workspace=fixture()}={}) {
   };
   globalThis.localStorage={getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,value),removeItem:key=>values.delete(key)};
   globalThis.confirm=()=>true;globalThis.innerWidth=1280;
+  globalThis.requestAnimationFrame=()=>0;
   globalThis.setTimeout=(fn,ms)=>previous.setTimeout(fn,ms).unref();
   globalThis.indexedDB={open:()=>{const request={error:new Error('unavailable')};queueMicrotask(()=>request.onerror());return request;}};
   async function load(project='one') {
     elements=new Map([...html.matchAll(/<[^>]+\bid="([^"]+)"[^>]*>/g)].map(match=>[match[1],new Element(match[0])]));
-    globalThis.document={getElementById:id=>{if(!elements.has(id)&&/^drop-probability-\d+$/.test(id))elements.set(id,new Element());return elements.get(id);},querySelectorAll:()=>[],body:{append(){}},createElement:()=>{const element=new Element();element.click=()=>link={href:element.href,download:element.download};return element;}};
-    globalThis.window={assetForgeLocal:local,location:{href:'http://localhost/?project='+project,assign:url=>navigation.push(url)},history:{replaceState(){}},addEventListener:(type,fn)=>{if(type==='beforeunload')unload.push(fn);}};
+    globalThis.document={getElementById:id=>{if(!elements.has(id)&&/^drop-probability-\d+$/.test(id))elements.set(id,new Element());return elements.get(id);},addEventListener(){},querySelectorAll:()=>[],body:{append(){}},createElement:()=>{const element=new Element();element.click=()=>link={href:element.href,download:element.download};return element;}};
+    const location={href:'http://localhost/?project='+project+'&view='+view,assign:url=>navigation.push(url)};
+    globalThis.window={assetForgeLocal:local,location,history:{replaceState(_,__,url){location.href='http://localhost'+url;}},addEventListener:(type,fn)=>{if(type==='beforeunload')unload.push(fn);}};
     await import('../public/editor/app.mjs?chest-ui-'+(++loadId));
   }
   await load();
@@ -74,6 +78,31 @@ test('独立外观编辑可增改保存, 普通分类保存不会丢失外观或
   ui.get('category-name').value='新道具';await ui.get('category-form').listeners.input();
   await ui.get('category-form').listeners.submit({preventDefault(){}});
   assert.deepEqual(ui.server.chestAppearances,[appearance,{id:9,name:'金箱',icon:'chests/gold.png'}]);
+});
+
+test('保存其他编辑器的数据不能重置共享英雄动作, 导出范围包含动作配置',async t=>{
+  const workspace=normalizeWorkspace(fixture());workspace.heroMotion.amplitude=.65;
+  const ui=await browser(t,{workspace});
+  ui.get('category-name').value='改名';await ui.get('category-form').listeners.input();
+  await ui.get('category-form').listeners.submit({preventDefault(){}});
+  assert.equal(ui.server.heroMotion.amplitude,.65);
+  assert.match(ui.get('export-scope').innerHTML,/__hero_motion__/);
+});
+
+test('英雄面板直达链接与草稿恢复接入主页面, 未保存动作阻止导出及项目切换',async t=>{
+  const ui=await browser(t,{local:true,view:'heroes'});
+  assert.equal(ui.get('heroes-view').hidden,false,'直达链接必须打开英雄动作');
+  assert.match(window.location.href,/view=heroes/,'刷新页面应保留英雄动作入口');
+  assert.equal(typeof ui.get('hero-save').listeners.click,'function');
+  const input={dataset:{heroParam:'amplitude'},value:'65'};
+  ui.get('hero-parameters').listeners.input({target:input});
+  await ui.get('export-now').listeners.click();assert.equal(ui.get('export-error').hidden,false);
+  ui.get('project-select').value='two';await ui.get('project-select').listeners.change();assert.deepEqual(ui.navigation,[]);
+  ui.offline=true;await ui.get('hero-save').listeners.click();
+  const key='asset-forge-draft:chest-ui:project:one';
+  assert.equal(JSON.parse(ui.values.get(key)).heroAnimation.draft.amplitude,.65);
+  ui.offline=false;await ui.load();await ui.get('cloud-restore').listeners.click();
+  await ui.get('hero-save').listeners.click();assert.equal(ui.server.heroMotion.amplitude,.65);assert.equal(ui.values.has(key),false);
 });
 
 test('外观草稿阻止导出和跨项目切换, 离线失败后可恢复并重试',async t=>{
@@ -107,7 +136,7 @@ test('外观保存版本冲突保留草稿, 备份并重新加载后显示远端
 test('外观导出范围只写外观 YAML, 全量摘要包含独立外观配置',async t=>{
   const ui=await browser(t);
   assert.match(ui.get('export-scope').innerHTML,/__chest_appearances__/,'缺少外观导出范围');
-  assert.match(ui.get('export-summary').textContent,/4 个 YAML/);
+  assert.match(ui.get('export-summary').textContent,/5 个 YAML/);
   const written=[];
   window.showDirectoryPicker=async()=>({name:'cfg',requestPermission:async()=>'granted',getFileHandle:async name=>({createWritable:async()=>({write:async content=>written.push({name,content}),close:async()=>{},abort:async()=>{}})})});
   await ui.get('choose-directory').listeners.click();ui.get('export-scope').value='__chest_appearances__';

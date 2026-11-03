@@ -7,18 +7,22 @@ import {mountEnumEditor} from './enum-editor.mjs';
 import {createCloudWorkspace} from './cloud.mjs';
 import {mountDropEditor} from './drop-editor.mjs';
 import {mountChestAppearanceEditor} from './chest-appearance-editor.mjs';
+import {mountHeroEditor} from './hero-editor.mjs';
 import {isDropCategory,assertDropTransition} from './drops.mjs';
 import {selectPngResource} from './resource-picker.mjs';
 import {mountProjects,currentProject,isLocalEditor,projectApi,projectStorageKey,projectNavigationBlocked} from './projects.mjs';
 
 const $ = id => document.getElementById(id);
+// 项目初始化会规范化地址, 先保留本次请求的面板入口.
+const requestedView=new URL(window.location.href).searchParams.get('view');
 const colors = ['#6b9470','#c39860','#7c8ab6','#b58b94','#6d9e9a','#a49363'];
 let rows=[],selected=0,dirty=false,directory=null,toastTimer;
 let tables={};
 let assetEditor=null,enumEditor=null,dropEditor=null,chestAppearanceEditor=null,enums=[],chestAppearances=[],workspaceReadFailed=false;
 let localConfig=null;
+let heroEditor=null,heroMotion;
 let cloud=null,legacyWorkspace=null,legacyRaw=null,recovery=null,suspendDraft=true,draftTimer;
-const getWorkspace=()=>({categories:rows,tables,enums,chestAppearances});
+const getWorkspace=()=>({categories:rows,tables,enums,chestAppearances,heroMotion});
 const escapeHtml = text => String(text).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const number = value => Number(value).toLocaleString('en-US');
 
@@ -34,9 +38,10 @@ function draftState(value) {
   dirty = value;
   updateDraftStatus();
 }
-function anyUnsaved() {return dirty || !!assetEditor?.hasUnsaved() || !!enumEditor?.hasUnsaved() || !!dropEditor?.hasUnsaved() || !!chestAppearanceEditor?.hasUnsaved();}
+function anyUnsaved() {return dirty || !!assetEditor?.hasUnsaved() || !!enumEditor?.hasUnsaved() || !!dropEditor?.hasUnsaved() || !!chestAppearanceEditor?.hasUnsaved() || !!heroEditor?.hasUnsaved();}
 function canEditAssets() {
   if(!canUseCloud())return false;
+  if(heroEditor?.hasUnsaved()){notify('请先保存英雄动作或放弃其修改.');return false;}
   if(chestAppearanceEditor?.hasUnsaved()){notify('请先保存宝箱外观或放弃其修改.');return false;}
   if(dropEditor?.hasUnsaved()){notify('请先保存掉落包或放弃其修改.');return false;}
   if(enumEditor?.hasUnsaved()){notify('请先保存枚举或放弃其修改, 再编辑分类或资产表.');return false;}
@@ -48,7 +53,7 @@ function canUseCloud() {
   return true;
 }
 function draftSnapshot() {
-  return {version:1,...(currentProject()?{projectId:currentProject().id}:{}),revision:cloud?.state.revision||0,workspace:getWorkspace(),category:{selected,dirty,form:formRow()},asset:assetEditor?.snapshot(),enumeration:enumEditor?.snapshot(),drops:dropEditor?.snapshot(),chestAppearance:chestAppearanceEditor?.snapshot()};
+  return {version:1,...(currentProject()?{projectId:currentProject().id}:{}),revision:cloud?.state.revision||0,workspace:getWorkspace(),category:{selected,dirty,form:formRow()},asset:assetEditor?.snapshot(),enumeration:enumEditor?.snapshot(),drops:dropEditor?.snapshot(),chestAppearance:chestAppearanceEditor?.snapshot(),heroAnimation:heroEditor?.snapshot()};
 }
 function rememberDraft(immediate=false) {
   if(suspendDraft||!cloud?.state.user)return;
@@ -100,19 +105,19 @@ function render() {
   $('range-legend').innerHTML = sorted.map(({row,index})=>`<span class="legend-item" style="--color:${colors[index%colors.length]}"><i></i>${escapeHtml(row.name)}</span>`).join('');
   $('yaml-preview').innerHTML = yamlMarkup(toYaml(rows));
   const scope=$('export-scope').value;
-  $('export-scope').innerHTML='<option value="__all__">全部配置与资产表</option><option value="__enums__">枚举配置 · asset-enums.yaml</option><option value="__chest_appearances__">宝箱外观 · chest-appearances.yaml</option>'+rows.map(row=>`<option value="${escapeHtml(row.key)}">${escapeHtml(row.name)} · ${escapeHtml(row.key)}.yaml</option>`).join('');
-  $('export-scope').value=['__enums__','__chest_appearances__'].includes(scope)||rows.some(row=>row.key===scope)?scope:'__all__';
-  updateExportSummary();assetEditor?.refresh();enumEditor?.refresh();dropEditor?.refresh();chestAppearanceEditor?.refresh();
+  $('export-scope').innerHTML='<option value="__all__">全部配置与资产表</option><option value="__enums__">枚举配置 · asset-enums.yaml</option><option value="__chest_appearances__">宝箱外观 · chest-appearances.yaml</option><option value="__hero_motion__">英雄动作 · hero-motion.yaml</option>'+rows.map(row=>`<option value="${escapeHtml(row.key)}">${escapeHtml(row.name)} · ${escapeHtml(row.key)}.yaml</option>`).join('');
+  $('export-scope').value=['__enums__','__chest_appearances__','__hero_motion__'].includes(scope)||rows.some(row=>row.key===scope)?scope:'__all__';
+  updateExportSummary();assetEditor?.refresh();enumEditor?.refresh();dropEditor?.refresh();chestAppearanceEditor?.refresh();heroEditor?.refresh();
 }
 function updateExportSummary() {
   const cat=rows.find(row=>row.key===$('export-scope').value);
-  $('export-summary').textContent=$('export-scope').value==='__chest_appearances__'?`chest-appearances.yaml / ${chestAppearances.length} 个外观`:$('export-scope').value==='__enums__'?`asset-enums.yaml / ${enums.length} 个枚举`:cat?`${cat.key}.yaml / ${tables[cat.key].rows.length} 行数据`:`${rows.length+3} 个 YAML 文件 / ${rows.reduce((sum,row)=>sum+tables[row.key].rows.length,0)} 行数据 / ${chestAppearances.length} 个宝箱外观`;
+  $('export-summary').textContent=$('export-scope').value==='__hero_motion__'?'hero-motion.yaml / 全英雄共用动作与挂点':$('export-scope').value==='__chest_appearances__'?`chest-appearances.yaml / ${chestAppearances.length} 个外观`:$('export-scope').value==='__enums__'?`asset-enums.yaml / ${enums.length} 个枚举`:cat?`${cat.key}.yaml / ${tables[cat.key].rows.length} 行数据`:`${rows.length+4} 个 YAML 文件 / ${rows.reduce((sum,row)=>sum+tables[row.key].rows.length,0)} 行数据 / ${chestAppearances.length} 个宝箱外观`;
 }
 async function commitWorkspace(next) {
   try {
     if(!canUseCloud())return false;
     assertDropTransition(getWorkspace(),next);
-    const saved=await cloud.save(next);rows=saved.categories;tables=saved.tables;enums=saved.enums;chestAppearances=saved.chestAppearances;return true;
+    const saved=await cloud.save(next);rows=saved.categories;tables=saved.tables;enums=saved.enums;chestAppearances=saved.chestAppearances;heroMotion=saved.heroMotion;return true;
   } catch(error) {rememberDraft(true);notify(`保存失败: ${error.message}`);errorAt('form-error',error.message);return false;}
 }
 async function persist(nextRows,rename) {
@@ -126,7 +131,14 @@ function showView(view) {
   $('enums-view').hidden=view!=='enums';
   $('drops-view').hidden=view!=='drops';
   $('chest-appearances-view').hidden=view!=='chest-appearances';
-  $('breadcrumb').textContent = view === 'categories' ? '资产分类' : view==='assets'?'资产表':view==='enums'?'枚举管理':view==='drops'?'掉落包':view==='chest-appearances'?'宝箱外观':'导出配置';
+  $('heroes-view').hidden=view!=='heroes';
+  if(view==='heroes')ensureHeroEditor().refresh();
+  if(isLocalEditor()&&currentProject()) {
+    const url=new URL(window.location.href);
+    if(view==='heroes')url.searchParams.set('view','heroes');else url.searchParams.delete('view');
+    window.history.replaceState(null,'',url.pathname+url.search);
+  }
+  $('breadcrumb').textContent = view === 'categories' ? '资产分类' : view==='assets'?'资产表':view==='enums'?'枚举管理':view==='drops'?'掉落包':view==='chest-appearances'?'宝箱外观':view==='heroes'?'英雄动作':'导出配置';
   document.querySelectorAll('[data-view]').forEach(button=>button.classList.toggle('active',button.dataset.view === view));
 }
 document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>showView(button.dataset.view)));
@@ -230,14 +242,14 @@ $('export-filename').addEventListener('input',()=>{
 });
 async function exportYaml() {
   showView('export'); errorAt('export-error');
-  if (anyUnsaved()) { errorAt('export-error','有未保存的分类, 枚举, 资产表, 掉落包或宝箱外观修改, 请先保存, 再导出.'); return; }
+  if (anyUnsaved()) { errorAt('export-error','有未保存的修改, 请先保存, 再导出.'); return; }
   if(isLocalEditor()&&(!canUseCloud()||!localConfig)){errorAt('export-error','请先连接当前项目并处理待恢复草稿或版本冲突.');return;}
   const button = $('export-now');
   let stage = '检查导出配置';
   try {
     const filename = validFilename();
     const scope=rows.find(row=>row.key===$('export-scope').value);
-    const files=$('export-scope').value==='__chest_appearances__'?workspaceFiles(getWorkspace(),filename).filter(file=>file.name==='chest-appearances.yaml'):$('export-scope').value==='__enums__'?[{name:'asset-enums.yaml',content:enumsYaml(enums)}]:scope?[{name:`${scope.key}.yaml`,content:assetTableYaml(scope,tables[scope.key],enums)}]:workspaceFiles(getWorkspace(),filename);
+    const files=$('export-scope').value==='__hero_motion__'?workspaceFiles(getWorkspace(),filename).filter(file=>file.name==='hero-motion.yaml'):$('export-scope').value==='__chest_appearances__'?workspaceFiles(getWorkspace(),filename).filter(file=>file.name==='chest-appearances.yaml'):$('export-scope').value==='__enums__'?[{name:'asset-enums.yaml',content:enumsYaml(enums)}]:scope?[{name:`${scope.key}.yaml`,content:assetTableYaml(scope,tables[scope.key],enums)}]:workspaceFiles(getWorkspace(),filename);
     if(localConfig){
       button.disabled=true;
       const response=await fetch(projectApi('/export'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({scope:$('export-scope').value,filename,expectedRevision:cloud.state.revision})}),result=await response.json();
@@ -315,7 +327,7 @@ assetEditor=mountAssetEditor({
 });
 enumEditor=mountEnumEditor({
   getWorkspace,onDirty:updateDraftStatus,notify,
-  canEdit:()=>{if(!canUseCloud())return false;if(dirty||assetEditor.hasUnsaved()||dropEditor?.hasUnsaved()||chestAppearanceEditor?.hasUnsaved()){notify('请先保存分类, 资产表, 掉落包和宝箱外观或放弃其修改, 再编辑枚举.');return false;}return true;},
+  canEdit:()=>{if(!canUseCloud())return false;if(dirty||assetEditor.hasUnsaved()||dropEditor?.hasUnsaved()||chestAppearanceEditor?.hasUnsaved()||heroEditor?.hasUnsaved()){notify('请先保存其他编辑器的修改, 再编辑枚举.');return false;}return true;},
   commit:async(key,definition)=>{const ok=await commitWorkspace(replaceEnum(getWorkspace(),key,definition));if(ok)render();return ok;},
   onExport:()=>{$('export-scope').value='__enums__';updateExportSummary();exportYaml();},
   onDownload:()=>{
@@ -327,13 +339,22 @@ enumEditor=mountEnumEditor({
 });
 dropEditor=mountDropEditor({getWorkspace,onDirty:updateDraftStatus,notify,onBackup:downloadBackup,
   onSelectPng:selectPngResource,
-  canEdit:()=>{if(!canUseCloud())return false;if(dirty||assetEditor.hasUnsaved()||enumEditor.hasUnsaved()||chestAppearanceEditor?.hasUnsaved()){notify('请先保存分类, 资产表, 枚举和宝箱外观或放弃其修改, 再编辑掉落包.');return false;}return true;},
+  canEdit:()=>{if(!canUseCloud())return false;if(dirty||assetEditor.hasUnsaved()||enumEditor.hasUnsaved()||chestAppearanceEditor?.hasUnsaved()||heroEditor?.hasUnsaved()){notify('请先保存其他编辑器的修改, 再编辑掉落包.');return false;}return true;},
   commit:async next=>{const ok=await commitWorkspace(next);if(ok)render();return ok;}
 });
 chestAppearanceEditor=mountChestAppearanceEditor({getWorkspace,onDirty:updateDraftStatus,notify,onSelectPng:selectPngResource,
-  canEdit:()=>{if(!canUseCloud())return false;if(dirty||assetEditor.hasUnsaved()||enumEditor.hasUnsaved()||dropEditor.hasUnsaved()){notify('请先保存分类, 资产表, 枚举和掉落包或放弃其修改, 再编辑宝箱外观.');return false;}return true;},
+  canEdit:()=>{if(!canUseCloud())return false;if(dirty||assetEditor.hasUnsaved()||enumEditor.hasUnsaved()||dropEditor.hasUnsaved()||heroEditor?.hasUnsaved()){notify('请先保存其他编辑器的修改, 再编辑宝箱外观.');return false;}return true;},
   commit:async next=>{const ok=await commitWorkspace(next);if(ok)render();return ok;}
 });
+// 首次进入才加载头像和 Canvas, 普通资产编辑无需启动动画循环.
+function ensureHeroEditor() {
+  if(!heroEditor)heroEditor=mountHeroEditor({getWorkspace,onDirty:updateDraftStatus,notify,onSelectPng:selectPngResource,
+    canEdit:()=>{if(!canUseCloud())return false;if(dirty||assetEditor.hasUnsaved()||enumEditor.hasUnsaved()||dropEditor.hasUnsaved()||chestAppearanceEditor.hasUnsaved()){notify('请先保存其他编辑器的修改, 再编辑英雄动作.');return false;}return true;},
+    commit:commitWorkspace,
+  });
+  return heroEditor;
+}
+$('hero-example').addEventListener('click',event=>{if(anyUnsaved()||!canUseCloud()){event.preventDefault();notify('请先保存修改并处理版本冲突, 网页示例读取已保存配置.');}});
 function downloadBackup() {
   rememberDraft(true);
   const backup={format:'asset-forge-backup',version:1,createdAt:new Date().toISOString(),...(currentProject()?{project:currentProject()}:{}),current:draftSnapshot(),recovery,legacy:legacyRaw,
@@ -372,7 +393,9 @@ function cloudStatus() {
 function applyCloud(workspace) {
   suspendDraft=true;
   rows=workspace?.categories||[];tables=workspace?.tables||{};enums=workspace?.enums||[];chestAppearances=workspace?.chestAppearances||[];
+  heroMotion=workspace?.heroMotion;
   loadForm(rows.length?0:-1);assetEditor.reset();enumEditor.reset();dropEditor.reset();chestAppearanceEditor.reset();
+  heroEditor?.reset();
   suspendDraft=false;cloudStatus();
 }
 async function reloadCloud(discard=false) {
@@ -412,6 +435,7 @@ $('cloud-restore').addEventListener('click',()=>{
     if(snapshot.enumeration)enumEditor.restore(snapshot.enumeration);
     if(snapshot.drops)dropEditor.restore(snapshot.drops);
     if(snapshot.chestAppearance)chestAppearanceEditor.restore(snapshot.chestAppearance);
+    if(snapshot.heroAnimation)ensureHeroEditor().restore(snapshot.heroAnimation);
     recovery=null;suspendDraft=false;
     if(snapshot.revision!==remoteRevision){cloud.state.phase='conflict';cloud.state.error='本机草稿基于旧版本. 请备份后加载最新本地, 手工重做需要保留的修改.';}
     updateDraftStatus();cloudStatus();
@@ -439,3 +463,4 @@ if(isLocalEditor()) {
   $('local-settings-toggle').textContent='项目目录';$('local-settings-save').hidden=true;
   $('local-resource-root').readOnly=true;$('local-export-root').readOnly=true;
 }
+if(requestedView==='heroes')showView('heroes');

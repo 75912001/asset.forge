@@ -6,6 +6,7 @@ import {join,resolve} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import {createLocalServer} from '../local/server.mjs';
 import {openStore,LOCAL_OWNER} from '../local/store.mjs';
+import {normalizeWorkspace} from '../public/editor/workspace.mjs';
 
 const seed={revision:13,updatedAt:'2026-10-29T06:00:00.000Z',workspace:{chestAppearances:[],categories:[{key:'equipment',name:'装备',start:1,end:9}],enums:[],tables:{equipment:{fields:[{key:'id',label:'ID',type:'uint32',required:true},{key:'name',label:'名称',type:'string',required:true},{key:'icon',label:'图标',type:'png',required:false}],rows:[{id:1,name:'草帽',icon:null}]}}}};
 const bytes=Uint8Array.from([137,80,78,71,13,10,26,10]);
@@ -28,7 +29,7 @@ test('migration preserves the old workspace and files, is idempotent, and keeps 
   const f=await fixture(t),app=await f.start();
   const projects=(await (await fetch(app.url+'/api/projects')).json()).projects;
   assert.deepEqual(projects,[{id:'mmorpg',name:'mmorpg',legacyMigration:1}]);
-  const saved=await workspace(app);assert.equal(saved.revision,13);assert.deepEqual(saved.workspace,seed.workspace);
+  const saved=await workspace(app);assert.equal(saved.revision,13);assert.deepEqual(saved.workspace,normalizeWorkspace(seed.workspace));
   const page=await (await fetch(app.url+'/')).text();assert.match(page,/window.assetForgeLocal=true/);assert.doesNotMatch(page,/fonts.googleapis.com/);
   assert.match(await (await fetch(app.url+'/editor/projects.css')).text(),/project-controls/);
   assert.deepEqual((await (await fetch(api(app,'mmorpg','/resources'))).json()).paths,['装备/草帽.png']);
@@ -50,7 +51,7 @@ test('migration preserves the old workspace and files, is idempotent, and keeps 
 test('independent projects isolate the same category, ID, PNG filename, enums, drops, save revisions and exports',async t=>{
   const f=await fixture(t),app=await f.start();
   assert.equal((await json(app.url+'/api/projects','POST',{id:'sa',name:'石器时代'})).status,201);
-  const empty=await workspace(app,'sa');assert.deepEqual(empty.workspace,{categories:[],enums:[],tables:{},chestAppearances:[]});assert.equal(empty.revision,1);
+  const empty=await workspace(app,'sa');assert.deepEqual(empty.workspace,normalizeWorkspace({categories:[],enums:[],tables:{},chestAppearances:[]}));assert.equal(empty.revision,1);
   await mkdir(join(f.root,'projects','sa','assets','装备'));
   const other=Uint8Array.from([...bytes,99]);await writeFile(join(f.root,'projects','sa','assets','装备','草帽.png'),other);
   const original=await workspace(app),sa=structuredClone(seed.workspace);sa.tables.equipment.rows[0]={id:1,name:'SA 帽子',icon:'装备/草帽.png'};
