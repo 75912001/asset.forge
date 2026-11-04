@@ -7,7 +7,7 @@
 | create-character (创建英雄) | 创建或编辑 Tiny Kingdom 风格的头部英雄, 默认朝左轻微侧向, 支持左右移动时的整体镜像和程序动画. 交付 256 x 256 透明 PNG, 保存至当前项目 assets/heroes/, 武器另用独立 icon, 支持单张, 批量及提示词. 不用于写实立绘, 纯人物小传或角色代码. | [.agents/skills/create-character/SKILL.md](.agents/skills/create-character/SKILL.md) |
 | create-icon | 按参考图创建粗黑描边, 圆润造型和鲜亮色块的技能, 道具与资产图标, 支持单张, 批量独立图及提示词, 默认交付 128 x 128 透明 PNG. | [.agents/skills/create-icon/SKILL.md](.agents/skills/create-icon/SKILL.md) |
 | create-weapon (创建武器) | 创建刀, 剑, 斧, 锤, 枪矛, 戟及弓弩的独立 128 x 128 透明 PNG. 默认主轴左上到右下, 单刃朝左下, 弓身朝左下且弓弦在右上侧, 支持单张, 批量及提示词. | [.agents/skills/create-weapon/SKILL.md](.agents/skills/create-weapon/SKILL.md) |
-| 推送git (push-git) | 提交并推送本项目代码, 资源与已保存数据, 在独立副本中验证 clone 后可运行. | [.agents/skills/push-git/SKILL.md](.agents/skills/push-git/SKILL.md) |
+| 推送git (push-git) | 先更新到远端最新内容并解决冲突, 再提交推送本项目代码, 资源与已保存数据, 在独立副本中验证 clone 后可运行. | [.agents/skills/push-git/SKILL.md](.agents/skills/push-git/SKILL.md) |
 
 技能中的资源路径相对于该技能目录解析. 图像生成使用当前 AI 工具实际可用的能力; 不具备出图能力时按技能交付提示词并说明限制, 不声称已生成图片.
 

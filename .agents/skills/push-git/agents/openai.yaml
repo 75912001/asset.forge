@@ -1,3 +1,3 @@
 interface:
   display_name: "推送git"
-  short_description: "提交并推送本项目代码, 资源与已保存数据, 验证其他用户 clone 后可运行"
+  short_description: "先更新远端并解决冲突, 再提交推送代码, 资源与已保存数据, 验证 clone 后可运行"
